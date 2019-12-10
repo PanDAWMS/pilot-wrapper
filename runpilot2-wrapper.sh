@@ -26,15 +26,15 @@ function get_workdir {
   if [[ ${harvesterflag} == 'true' ]]; then
       # test if Harvester WorkFlow is OneToMany aka "Jumbo" Jobs
       if [[ ${workflowarg} == 'OneToMany' ]]; then
-	  if [[ -n ${!harvesterarg} ]]; then
-	      templ=$(pwd)/atlas_${!harvesterarg}
-	      mkdir ${templ}
-	      echo ${templ}
-	      return 0
-	  fi
+        if [[ -n ${!harvesterarg} ]]; then
+          templ=$(pwd)/atlas_${!harvesterarg}
+          mkdir ${templ}
+          echo ${templ}
+          return 0
+        fi
       else
-	  echo $(pwd)
-	  return 0
+        echo $(pwd)
+        return 0
       fi
   fi
 
@@ -365,7 +365,21 @@ function main() {
   
   myargs=$@
   echo "wrapper call: $0 $myargs"
+
+  cpuinfo_flags="flags: EMPTY"
+  if [ -f /proc/cpuinfo ]; then
+    cpuinfo_flags="$(grep '^flags' /proc/cpuinfo 2>/dev/null | sort -u 2>/dev/null)"
+    if [ -z "${cpuinfo_flags}" ]; then 
+      cpuinfo_flags="flags: EMPTY"
+    fi
+  else
+    cpuinfo_flags="flags: EMPTY"
+  fi
+  
+  echo "Flags from /proc/cpuinfo:"
+  echo ${cpuinfo_flags}
   echo
+
   
   echo "---- Enter workdir ----"
   workdir=$(get_workdir)
