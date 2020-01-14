@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20191106a-pilot2
+VERSION=20200114b-pilot2
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S %Z [wrapper]")
@@ -17,25 +17,24 @@ function log() {
 }
 
 function get_workdir {
-
   if [[ ${piloturl} == 'local' && ${harvesterflag} == 'false' ]]; then
     echo $(pwd)
     return 0
   fi
 
   if [[ ${harvesterflag} == 'true' ]]; then
-      # test if Harvester WorkFlow is OneToMany aka "Jumbo" Jobs
-      if [[ ${workflowarg} == 'OneToMany' ]]; then
-        if [[ -n ${!harvesterarg} ]]; then
-          templ=$(pwd)/atlas_${!harvesterarg}
-          mkdir ${templ}
-          echo ${templ}
-          return 0
-        fi
-      else
-        echo $(pwd)
+    # test if Harvester WorkFlow is OneToMany aka "Jumbo" Jobs
+    if [[ ${workflowarg} == 'OneToMany' ]]; then
+      if [[ -n ${!harvesterarg} ]]; then
+        templ=$(pwd)/atlas_${!harvesterarg}
+        mkdir ${templ}
+        echo ${templ}
         return 0
       fi
+    else
+      echo $(pwd)
+      return 0
+    fi
   fi
 
   if [[ -n ${OSG_WN_TMP} ]]; then
@@ -51,23 +50,23 @@ function get_workdir {
 
 
 function check_python() {
-    pybin=$(which python)
-    pyver=`$pybin -c "import sys; print '%03d%03d%03d' % sys.version_info[0:3]"`
-    # check if native python version > 2.6.0
-    if [ $pyver -ge 002006000 ] ; then
-      log "Native python version is > 2.6.0 ($pyver)"
-      log "Using $pybin for python compatibility"
-    else
-      log "refactor: this site has native python < 2.6.0"
-      err "warning: this site has native python < 2.6.0"
-      log "Native python $pybin is old: $pyver"
-    
-      # Oh dear, we're doomed...
-      log "FATAL: Failed to find a compatible python, exiting"
-      err "FATAL: Failed to find a compatible python, exiting"
-      apfmon_fault 1
-      sortie 1
-    fi
+  pybin=$(which python)
+  pyver=`$pybin -c "import sys; print '%03d%03d%03d' % sys.version_info[0:3]"`
+  # check if native python version > 2.6.0
+  if [ $pyver -ge 002006000 ] ; then
+    log "Native python version is > 2.6.0 ($pyver)"
+    log "Using $pybin for python compatibility"
+  else
+    log "error: this site has native python < 2.6.0"
+    err "error: this site has native python < 2.6.0"
+    log "Native python $pybin is old: $pyver"
+  
+    # Oh dear, we're doomed...
+    log "FATAL: Failed to find a compatible python, exiting"
+    err "FATAL: Failed to find a compatible python, exiting"
+    apfmon_fault 1
+    sortie 1
+  fi
 }
 
 function check_proxy() {
@@ -144,13 +143,11 @@ function setup_alrb() {
   fi
 }
 
-# still needed? using VO_ATLAS_SW_DIR is specific to EGI
 function setup_local() {
-  export SITE_NAME=${sarg}
   log "Looking for ${VO_ATLAS_SW_DIR}/local/setup.sh"
   if [[ -f ${VO_ATLAS_SW_DIR}/local/setup.sh ]]; then
-    log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${rarg}"
-    source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${rarg}
+    log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}"
+    source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}
   else
     log 'WARNING: No ATLAS local setup found'
     err 'WARNING: this site has no local setup ${VO_ATLAS_SW_DIR}/local/setup.sh'
@@ -211,13 +208,13 @@ function check_arcproxy() {
 function pilot_cmd() {
   # test if not harvester job 
   if [[ ${harvesterflag} == 'false' ]] ; then  
-    cmd="${pybin} pilot2/pilot.py -q ${qarg} -r ${rarg} -s ${sarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+    cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
   else
     # check to see if we are running OneToMany Harvester workflow (aka Jumbo Jobs)
     if [[ ${workflowarg} == 'OneToMany' ]] && [ -z ${HARVESTER_PILOT_WORKDIR+x} ] ; then
-      cmd="${pybin} pilot2/pilot.py -q ${qarg} -r ${rarg} -s ${sarg} -i ${iarg} -j ${jarg} -a ${HARVESTER_PILOT_WORKDIR} --pilot-user=atlashpc ${pilotargs}"
+      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} -a ${HARVESTER_PILOT_WORKDIR} --pilot-user=atlashpc ${pilotargs}"
     else
-      cmd="${pybin} pilot2/pilot.py -q ${qarg} -r ${rarg} -s ${sarg} -i ${iarg} -j ${jarg} --pilot-user=atlashpc ${pilotargs}"
+      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=atlashpc ${pilotargs}"
     fi
   fi
   echo ${cmd}
@@ -274,7 +271,7 @@ function muted() {
 
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "running 0 ${VERSION} ${rarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
+  echo -n "running 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 -d state=wrapperrunning -d wrapper=$VERSION \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
@@ -332,7 +329,7 @@ function sortie() {
   if [[ ${mute} == 'true' ]]; then
     muted
   else
-    echo -n "${state} ${duration} ${VERSION} ${rarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
+    echo -n "${state} ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
   fi
 
   exit $ec
@@ -407,8 +404,6 @@ function main() {
   
   echo "---- Initial environment ----"
   printenv | sort
-  # SITE_NAME env var is used downstream by rucio
-  export SITE_NAME=${sarg}
   if [[ ${containerflag} == 'true' ]]; then
     log 'Skipping defining VO_ATLAS_SW_DIR due to --container flag'
     log 'Skipping defining ATLAS_LOCAL_ROOT_BASE due to --container flag'
@@ -452,7 +447,7 @@ function main() {
 
   if [[ ${harvesterflag} == 'true' ]]; then
     echo "---- Create symlinks to input data ----"
-    log ' create to symlinks to input data from harvester info'
+    log 'Create to symlinks to input data from harvester info'
     setup_harvester_symlinks
     echo
   fi
@@ -550,7 +545,6 @@ iarg='PR'
 jarg='managed'
 qarg=''
 rarg=''
-sarg=''
 shoalflag=false
 tflag='false'
 piloturl='http://pandaserver.cern.ch:25085/cache/pilot/pilot2.tar.gz'
@@ -638,9 +632,7 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-if [ -z "${sarg}" ]; then usage; exit 1; fi
 if [ -z "${qarg}" ]; then usage; exit 1; fi
-if [ -z "${rarg}" ]; then usage; exit 1; fi
 
 pilotargs="$@"
 
