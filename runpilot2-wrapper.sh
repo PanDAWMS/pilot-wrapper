@@ -1,11 +1,10 @@
 #!/bin/bash
 #
 # pilot2 wrapper used at CERN central pilot factories
-# NOTE: this is for pilot2, not the legacy pilot.py
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20191209a-pilot2
+VERSION=20200115a-pilot2
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S %Z [wrapper]")
@@ -18,11 +17,26 @@ function log() {
 }
 
 function get_workdir {
-  if [[ ${piloturl} == 'local' ]]; then
+  if [[ ${piloturl} == 'local' && ${harvesterflag} == 'false' ]]; then
     echo $(pwd)
     return 0
   fi
-    
+
+  if [[ ${harvesterflag} == 'true' ]]; then
+    # test if Harvester WorkFlow is OneToMany aka "Jumbo" Jobs
+    if [[ ${workflowarg} == 'OneToMany' ]]; then
+      if [[ -n ${!harvesterarg} ]]; then
+        templ=$(pwd)/atlas_${!harvesterarg}
+        mkdir ${templ}
+        echo ${templ}
+        return 0
+      fi
+    else
+      echo $(pwd)
+      return 0
+    fi
+  fi
+
   if [[ -n ${OSG_WN_TMP} ]]; then
     templ=${OSG_WN_TMP}/atlas_XXXXXXXX
   elif [[ -n ${TMPDIR} ]]; then
@@ -36,23 +50,23 @@ function get_workdir {
 
 
 function check_python() {
-    pybin=$(which python)
-    pyver=`$pybin -c "import sys; print '%03d%03d%03d' % sys.version_info[0:3]"`
-    # check if native python version > 2.6.0
-    if [ $pyver -ge 002006000 ] ; then
-      log "Native python version is > 2.6.0 ($pyver)"
-      log "Using $pybin for python compatibility"
-    else
-      log "refactor: this site has native python < 2.6.0"
-      err "warning: this site has native python < 2.6.0"
-      log "Native python $pybin is old: $pyver"
-    
-      # Oh dear, we're doomed...
-      log "FATAL: Failed to find a compatible python, exiting"
-      err "FATAL: Failed to find a compatible python, exiting"
-      apfmon_fault 1
-      sortie 1
-    fi
+  pybin=$(which python)
+  pyver=`$pybin -c "import sys; print '%03d%03d%03d' % sys.version_info[0:3]"`
+  # check if native python version > 2.6.0
+  if [ $pyver -ge 002006000 ] ; then
+    log "Native python version is > 2.6.0 ($pyver)"
+    log "Using $pybin for python compatibility"
+  else
+    log "error: this site has native python < 2.6.0"
+    err "error: this site has native python < 2.6.0"
+    log "Native python $pybin is old: $pyver"
+  
+    # Oh dear, we're doomed...
+    log "FATAL: Failed to find a compatible python, exiting"
+    err "FATAL: Failed to find a compatible python, exiting"
+    apfmon_fault 1
+    sortie 1
+  fi
 }
 
 function check_proxy() {
@@ -103,8 +117,11 @@ function setup_alrb() {
     export ALRB_rucioVersion=testing
   fi
   if [[ ${iarg} == "ALRB" ]]; then
-    log 'ALRB pilot requested, setting env var ALRB_adcTesting=YES'
-    export ALRB_adcTesting=YES
+    log 'ALRB pilot requested, setting ALRB env vars to testing'
+    export ALRB_asetupVersion=testing
+    export ALRB_xrootdVersion=testing
+    export ALRB_davixVersion=testing
+    export ALRB_rucioVersion=testing
   fi
   export ATLAS_LOCAL_ROOT_BASE=${ATLAS_LOCAL_ROOT_BASE:-/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase}
   export ALRB_userMenuFmtSkip=YES
@@ -126,13 +143,11 @@ function setup_alrb() {
   fi
 }
 
-# still needed? using VO_ATLAS_SW_DIR is specific to EGI
 function setup_local() {
-  export SITE_NAME=${sarg}
   log "Looking for ${VO_ATLAS_SW_DIR}/local/setup.sh"
   if [[ -f ${VO_ATLAS_SW_DIR}/local/setup.sh ]]; then
-    log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${rarg}"
-    source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${rarg}
+    log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}"
+    source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}
   else
     log 'WARNING: No ATLAS local setup found'
     err 'WARNING: this site has no local setup ${VO_ATLAS_SW_DIR}/local/setup.sh'
@@ -143,6 +158,30 @@ function setup_local() {
     source ${OSG_GRID}/setup.sh
   fi
 }
+
+function setup_shoal() {
+  log "will set FRONTIER_SERVER with shoal"
+  if [[ -n "${FRONTIER_SERVER}" ]] ; then
+    export FRONTIER_SERVER
+    log "call shoal frontier"
+    outputstr=`shoal-client -f`
+    log "result: $outputstr"
+
+    if [[ $? -eq 0 ]] ; then
+      export FRONTIER_SERVER=$outputstr
+    fi
+
+    log "set FRONTIER_SERVER = $FRONTIER_SERVER"
+  fi
+}
+
+function setup_harvester_symlinks() {
+  for datafile in `find ${HARVESTER_WORKDIR} -maxdepth 1 -type l -exec /usr/bin/readlink -e {} ';'`; do
+      symlinkname=$(basename $datafile)
+      ln -s $datafile $symlinkname
+  done      
+}
+
 
 function check_vomsproxyinfo() {
   out=$(voms-proxy-info --version 2>/dev/null)
@@ -167,11 +206,26 @@ function check_arcproxy() {
 }
 
 function pilot_cmd() {
-  cmd="${pybin} pilot2/pilot.py -q ${qarg} -r ${rarg} -s ${sarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+  # test if not harvester job 
+  if [[ ${harvesterflag} == 'false' ]] ; then  
+    cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+  else
+    # check to see if we are running OneToMany Harvester workflow (aka Jumbo Jobs)
+    if [[ ${workflowarg} == 'OneToMany' ]] && [ -z ${HARVESTER_PILOT_WORKDIR+x} ] ; then
+      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} -a ${HARVESTER_PILOT_WORKDIR} --pilot-user=atlashpc ${pilotargs}"
+    else
+      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=atlashpc ${pilotargs}"
+    fi
+  fi
   echo ${cmd}
 }
 
 function get_pilot() {
+
+  if [[ ${harvesterflag} == 'true' ]] && [[ ${workflowarg} == 'OneToMany' ]]; then
+    cp -v ${HARVESTER_WORK_DIR}/pilot2.tar.gz .
+  fi
+
   if [[ -f pilot2.tar.gz ]]; then
     tar -xzf pilot2.tar.gz
     if [ -f pilot2/pilot.py ]; then
@@ -195,7 +249,7 @@ function get_pilot() {
     fi
   fi
    
-  curl --connect-timeout 30 --max-time 180 -sSL ${piloturl} | tar -xzf -
+  curl --connect-timeout 30 --max-time 180 -sS ${piloturl} | tar -xzf -
   if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
     log "ERROR: pilot download failed: ${piloturl}"
     err "ERROR: pilot download failed: ${piloturl}"
@@ -217,7 +271,7 @@ function muted() {
 
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "running 0 ${VERSION} ${rarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
+  echo -n "running 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 -d state=wrapperrunning -d wrapper=$VERSION \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
@@ -243,8 +297,7 @@ function apfmon_exiting() {
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
 
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d state=wrapperfault -d rc=$1 \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
+  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d state=wrapperfault -d rc=$1 ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     log $out
   else
@@ -276,7 +329,7 @@ function sortie() {
   if [[ ${mute} == 'true' ]]; then
     muted
   else
-    echo -n "${state} ${duration} ${VERSION} ${rarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
+    echo -n "${state} ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
   fi
 
   exit $ec
@@ -309,7 +362,21 @@ function main() {
   
   myargs=$@
   echo "wrapper call: $0 $myargs"
+
+  cpuinfo_flags="flags: EMPTY"
+  if [ -f /proc/cpuinfo ]; then
+    cpuinfo_flags="$(grep '^flags' /proc/cpuinfo 2>/dev/null | sort -u 2>/dev/null)"
+    if [ -z "${cpuinfo_flags}" ]; then 
+      cpuinfo_flags="flags: EMPTY"
+    fi
+  else
+    cpuinfo_flags="flags: EMPTY"
+  fi
+  
+  echo "Flags from /proc/cpuinfo:"
+  echo ${cpuinfo_flags}
   echo
+
   
   echo "---- Enter workdir ----"
   workdir=$(get_workdir)
@@ -319,6 +386,10 @@ function main() {
   fi
   log "cd ${workdir}"
   cd ${workdir}
+  if [[ ${harvesterflag} == 'true' ]]; then
+        export HARVESTER_PILOT_WORKDIR=${workdir}
+        log "Define HARVESTER_PILOT_WORKDIR : ${HARVESTER_PILOT_WORKDIR}"
+  fi
   echo
   
   echo "---- Retrieve pilot code ----"
@@ -333,10 +404,13 @@ function main() {
   
   echo "---- Initial environment ----"
   printenv | sort
-  # SITE_NAME env var is used downstream by rucio
-  export SITE_NAME=${sarg}
-  export VO_ATLAS_SW_DIR='/cvmfs/atlas.cern.ch/repo/sw'
-  export ATLAS_LOCAL_ROOT_BASE='/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase'
+  if [[ ${containerflag} == 'true' ]]; then
+    log 'Skipping defining VO_ATLAS_SW_DIR due to --container flag'
+    log 'Skipping defining ATLAS_LOCAL_ROOT_BASE due to --container flag'
+  else
+    export VO_ATLAS_SW_DIR='/cvmfs/atlas.cern.ch/repo/sw'
+    export ATLAS_LOCAL_ROOT_BASE='/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase'
+  fi
   echo
   
   echo "---- Shell process limits ----"
@@ -348,16 +422,41 @@ function main() {
   echo
 
   echo "---- Check cvmfs area ----"
-  check_cvmfs
+  if [[ ${containerflag} == 'true' ]]; then
+    log 'Skipping Check cvmfs area due to --container flag'
+  else
+    check_cvmfs
+  fi
   echo
 
   echo "---- Setup ALRB ----"
-  setup_alrb
+  if [[ ${containerflag} == 'true' ]]; then
+    log 'Skipping Setup ALRB due to --container flag'
+  else
+    setup_alrb
+  fi
   echo
 
   echo "---- Setup local ATLAS ----"
-  setup_local
+  if [[ ${containerflag} == 'true' ]]; then
+    log 'Skipping Setup local ATLAS due to --container flag'
+  else
+    setup_local
+  fi
   echo
+
+  if [[ ${harvesterflag} == 'true' ]]; then
+    echo "---- Create symlinks to input data ----"
+    log 'Create to symlinks to input data from harvester info'
+    setup_harvester_symlinks
+    echo
+  fi
+    
+  if [[ "${shoalflag}" == 'true' ]]; then
+    echo "--- Setup shoal ---"
+    setup_shoal
+    echo
+  fi
 
   echo "---- Proxy Information ----"
   if [[ ${tflag} == 'true' ]]; then
@@ -377,12 +476,7 @@ function main() {
   echo
 
   echo "---- Ready to run pilot ----"
-  trap 'trap_handler SIGTERM' SIGTERM
-  trap 'trap_handler SIGQUIT' SIGQUIT
-  trap 'trap_handler SIGSEGV' SIGSEGV
-  trap 'trap_handler SIGXCPU' SIGXCPU
-  trap 'trap_handler SIGUSR1' SIGUSR1
-  trap 'trap_handler SIGBUS' SIGBUS
+  trap trap_handler SIGTERM SIGQUIT SIGSEGV SIGXCPU SIGUSR1 SIGBUS
   echo
 
   log "==== pilot stdout BEGIN ===="
@@ -426,6 +520,8 @@ function main() {
 function usage () {
   echo "Usage: $0 -q <queue> -r <resource> -s <site> [<pilot_args>]"
   echo
+  echo "  --container (Standalone container), file to source for release setup "
+  echo "  --harvester (Harvester at HPC edge), NodeID from HPC batch system "
   echo "  -i,   pilot type, default PR"
   echo "  -j,   job type prodsourcelabel, default 'managed'"
   echo "  -q,   panda queue"
@@ -440,11 +536,16 @@ starttime=$(date +%s)
 
 # wrapper args are explicit if used in the wrapper
 # additional pilot2 args are passed as extra args
+containerflag='false'
+containerarg=''
+harvesterflag='false'
+harvesterarg=''
+workflowarg=''
 iarg='PR'
 jarg='managed'
 qarg=''
 rarg=''
-sarg=''
+shoalflag=false
 tflag='false'
 piloturl='http://pandaserver.cern.ch:25085/cache/pilot/pilot2.tar.gz'
 mute='false'
@@ -457,6 +558,26 @@ key="$1"
 case $key in
     -h|--help)
     usage
+    shift
+    shift
+    ;;
+    --container)
+    containerflag='true'
+    #containerarg="$2"
+    #shift
+    shift
+    ;;
+    --harvester)
+    harvesterflag='true'
+    harvesterarg="$2"
+    mute='true'
+    piloturl='local'
+    shift
+    shift
+    ;;
+    --harvester_workflow)
+    harvesterflag='true'
+    workflowarg="$2"
     shift
     shift
     ;;
@@ -494,6 +615,10 @@ case $key in
     shift
     shift
     ;;
+    -S|--shoal)
+    shoalflag=true
+    shift
+    ;;
     -t)
     tflag='true'
     POSITIONAL+=("$1") # save it in an array for later
@@ -507,9 +632,7 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-if [ -z "${sarg}" ]; then usage; exit 1; fi
 if [ -z "${qarg}" ]; then usage; exit 1; fi
-if [ -z "${rarg}" ]; then usage; exit 1; fi
 
 pilotargs="$@"
 
