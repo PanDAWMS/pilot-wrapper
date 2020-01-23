@@ -7,12 +7,12 @@
 VERSION=20200115a-pilot2
 
 function err() {
-  dt=$(date --utc +"%Y-%m-%d %H:%M:%S %Z [wrapper]")
+  dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
   echo $dt $@ >&2
 }
 
 function log() {
-  dt=$(date --utc +"%Y-%m-%d %H:%M:%S %Z [wrapper]")
+  dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
   echo $dt $@
 }
 
