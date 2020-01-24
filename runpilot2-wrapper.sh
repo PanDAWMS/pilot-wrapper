@@ -125,19 +125,31 @@ function setup_alrb() {
   fi
   export ATLAS_LOCAL_ROOT_BASE=${ATLAS_LOCAL_ROOT_BASE:-/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase}
   export ALRB_userMenuFmtSkip=YES
-  export ALRB_noGridMW=NO
-  if [[ ${tflag} == 'true' ]]; then
-    log 'Skipping proxy checks due to -t flag'
+  export ALRB_noGridMW=${ALRB_noGridMW:-NO}
+
+  if [[ ${ALRB_noGridMW} == "YES" ]]; then
+    log "Site has set ALRB_noGridMW=YES so use site native install rather than ALRB"
+    if [[ ${tflag} == 'true' ]]; then
+      log 'Skipping proxy checks due to -t flag'
+    else
+      check_vomsproxyinfo || check_arcproxy
+      if [[ $? -eq 1 ]]; then
+        log "FATAL: Site MW being used but proxy tools not found"
+        err "FATAL: Site MW being used but proxy tools not found"
+        apfmon_fault 1
+        sortie 1
+      fi
+    fi
   else
-    check_vomsproxyinfo || check_arcproxy && export ALRB_noGridMW=YES
+    log "Will use ALRB MW because ALRB_noGridMW=NO (default)"
   fi
 
-  if [ -d /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase ]; then
+  if [ -d ${ATLAS_LOCAL_ROOT_BASE} ]; then
     log 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet'
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet
   else
-    log "ERROR: ALRB not found: /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase, exiting"
-    err "ERROR: ALRB not found: /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase, exiting"
+    log "ERROR: ALRB ATLAS_LOCAL_ROOT_BASE not found: ${ATLAS_LOCAL_ROOT_BASE}, exiting"
+    err "ERROR: ALRB ATLAS_LOCAL_ROOT_BASE not found: ${ATLAS_LOCAL_ROOT_BASE}, exiting"
     apfmon_fault 1
     sortie 1
   fi
