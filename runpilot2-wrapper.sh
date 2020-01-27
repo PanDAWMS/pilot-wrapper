@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200123a-pilot2next
+VERSION=20200124a-pilot2next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -261,7 +261,7 @@ function get_pilot() {
     fi
   fi
    
-  curl --connect-timeout 30 --max-time 180 -sS ${piloturl} | tar -xzf -
+  curl --connect-timeout 30 --max-time 180 -sSL ${piloturl} | tar -xzf -
   if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
     log "ERROR: pilot download failed: ${piloturl}"
     err "ERROR: pilot download failed: ${piloturl}"
@@ -284,7 +284,7 @@ function muted() {
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
   echo -n "running 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d state=wrapperrunning -d wrapper=$VERSION \
+  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d qarg=${qarg} -d state=wrapperrunning -d wrapper=$VERSION \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     log $out
