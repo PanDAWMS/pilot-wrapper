@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200127a-pilot2
+VERSION=20200209a-pilot2
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -284,37 +284,39 @@ function muted() {
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
   echo -n "running 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d qarg=${qarg} -d state=wrapperrunning -d wrapper=$VERSION \
+  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
+             -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
+             -d gtag=${GTAG} -d hid=${HARVESTER_ID} -d hwid=${HARVESTER_WORKER_ID} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     log $out
   else
-    err "WARNING: wrapper monitor"
-    err "ARGS: -d state=wrapperrunning -d wrapper=$VERSION ${APFMON}/jobs/${APFFID}:${APFCID}"
+    err "WARNING: wrapper monitor ${UUID}"
   fi
 }
 
 function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d state=wrapperexiting -d rc=$1 \
+  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
+             -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     log $out
   else
-    err "WARNING: wrapper monitor"
-    err "ARGS: -d state=wrapperexiting -d rc=$1 ${APFMON}/jobs/${APFFID}:${APFCID}"
+    err "WARNING: wrapper monitor ${UUID}"
   fi
 }
 
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
 
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d state=wrapperfault -d rc=$1 ${APFMON}/jobs/${APFFID}:${APFCID})
+  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
+             -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
+             ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     log $out
   else
-    err "WARNING: wrapper monitor"
-    err "ARGS: -d state=wrapperfault -d rc=$1 ${APFMON}/jobs/${APFFID}:${APFCID}"
+    err "WARNING: wrapper monitor ${UUID}"
   fi
 }
 
@@ -358,6 +360,7 @@ function main() {
 
   log "==== wrapper stdout BEGIN ===="
   err "==== wrapper stderr BEGIN ===="
+  UUID=$(cat /proc/sys/kernel/random/uuid)
   apfmon_running
   echo
 
