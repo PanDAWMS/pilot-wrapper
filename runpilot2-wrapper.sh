@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200209a-pilot2
+VERSION=20200213a-pilot2next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -51,15 +51,28 @@ function get_workdir {
 
 function check_python() {
   pybin=$(which python)
-  pyver=`$pybin -c "import sys; print '%03d%03d%03d' % sys.version_info[0:3]"`
+  if [[ $? -ne 0 ]]; then
+    log "FATAL: python not found in PATH"
+    err "FATAL: python not found in PATH"
+    if [[ -z "${PATH}" ]]; then
+      log "In fact, PATH env var is unset"
+      err "In fact, PATH env var is unset"
+    fi
+    log "PATH content is ${PATH}"
+    err "PATH content is ${PATH}"
+    apfmon_fault 1
+    sortie 1
+  fi
+    
+  pyver=$($pybin -c "import sys; print '%03d%03d%03d' % sys.version_info[0:3]")
   # check if native python version > 2.6.0
-  if [ $pyver -ge 002006000 ] ; then
-    log "Native python version is > 2.6.0 ($pyver)"
-    log "Using $pybin for python compatibility"
+  if [[ ${pyver} -ge 002006000 ]] ; then
+    log "Native python version is > 2.6.0 (${pyver})"
+    log "Using ${pybin} for python compatibility"
   else
-    log "error: this site has native python < 2.6.0"
-    err "error: this site has native python < 2.6.0"
-    log "Native python $pybin is old: $pyver"
+    log "ERROR: this site has native python < 2.6.0"
+    err "ERROR: this site has native python < 2.6.0"
+    log "Native python ${pybin} is old: ${pyver}"
   
     # Oh dear, we're doomed...
     log "FATAL: Failed to find a compatible python, exiting"
@@ -86,7 +99,7 @@ function check_proxy() {
 
 function check_cvmfs() {
   export VO_ATLAS_SW_DIR=${VO_ATLAS_SW_DIR:-/cvmfs/atlas.cern.ch/repo/sw}
-  if [ -d ${VO_ATLAS_SW_DIR} ]; then
+  if [[ -d ${VO_ATLAS_SW_DIR} ]]; then
     log "Found atlas software repository"
   else
     log "ERROR: atlas software repository NOT found: ${VO_ATLAS_SW_DIR}"
