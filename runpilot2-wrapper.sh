@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200213a-pilot2next
+VERSION=20200225a-pilot2next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -55,8 +55,8 @@ function check_python() {
     log "FATAL: python not found in PATH"
     err "FATAL: python not found in PATH"
     if [[ -z "${PATH}" ]]; then
-      log "In fact, PATH env var is unset"
-      err "In fact, PATH env var is unset"
+      log "In fact, PATH env var is unset mon amie"
+      err "In fact, PATH env var is unset mon amie"
     fi
     log "PATH content is ${PATH}"
     err "PATH content is ${PATH}"
