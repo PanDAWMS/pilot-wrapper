@@ -297,7 +297,7 @@ function muted() {
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
   echo -n "running 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  out=$(curl -ksS4 --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
+  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
              -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
              -d gtag=${GTAG} -d hid=${HARVESTER_ID} -d hwid=${HARVESTER_WORKER_ID} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
@@ -310,7 +310,7 @@ function apfmon_running() {
 
 function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
-  out=$(curl -ksS4 --connect-timeout 10 --max-time 20 \
+  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
@@ -323,7 +323,7 @@ function apfmon_exiting() {
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
 
-  out=$(curl -ksS4 --connect-timeout 10 --max-time 20 \
+  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
