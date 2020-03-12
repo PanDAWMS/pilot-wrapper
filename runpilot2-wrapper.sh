@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200226a-pilot2next
+VERSION=20200312a-pilot2next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -311,7 +311,7 @@ function apfmon_running() {
 function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
-             -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
+             -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} -d duration=$2 \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     log $out
@@ -518,13 +518,15 @@ function main() {
   log "Pilot exit status: $pilotrc"
   
   # notify monitoring, job exiting, capture the pilot exit status
-  if [[ -f STATUSCODE ]]; then
+  if [[ -f pilot2/STATUSCODE ]]; then
     scode=$(cat pilot2/STATUSCODE)
   else
+    log "Not found: pilot2/STATUSCODE"
     scode=$pilotrc
   fi
   log "STATUSCODE: $scode"
-  apfmon_exiting $scode
+  duration=$(( $(date +%s) - ${starttime} ))
+  apfmon_exiting ${scode} ${duration}
   
   echo "---- find pandaIDs.out ----"
   ls -l ${workdir}/pilot2
