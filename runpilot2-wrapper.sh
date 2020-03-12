@@ -531,8 +531,9 @@ function main() {
   echo
   log "pandaIDs.out files:"
   find ${workdir}/pilot2 -name pandaIDs.out -exec ls -l {} \;
-  log "pandaIDs.out content:"
-  find ${workdir}/pilot2 -name pandaIDs.out -exec cat {} \;
+  # note max 30 pandaids for safety
+  pandaids=$(find ${workdir}/pilot2 -name pandaIDs.out -exec cat {} \; | xargs echo | cut -d' ' -f-30)
+  log "pandaids: ${pandaids}"
   echo
 
   if [[ ${piloturl} != 'local' ]]; then
