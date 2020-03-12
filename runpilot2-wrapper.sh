@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200312c-pilot2next
+VERSION=20200313b-pilot2
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -351,6 +351,7 @@ function sortie() {
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
 
+  duration=$(( $(date +%s) - ${starttime} ))
   log "wrapper ${state} ec=$ec, duration=${duration}"
   
   if [[ ${mute} == 'true' ]]; then
