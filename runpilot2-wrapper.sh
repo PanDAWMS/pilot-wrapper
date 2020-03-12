@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200312b-pilot2next
+VERSION=20200312c-pilot2next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -517,13 +517,11 @@ function main() {
   log "==== wrapper stdout RESUME ===="
   log "Pilot exit status: $pilotrc"
   
-  echo "---- find pandaIDs.out ----"
   log "pandaIDs.out files:"
   find ${workdir}/pilot2 -name pandaIDs.out -exec ls -l {} \;
   # note max 30 pandaids for safety
   pandaids=$(find ${workdir}/pilot2 -name pandaIDs.out -exec cat {} \; | xargs echo | cut -d' ' -f-30)
   log "pandaids: ${pandaids}"
-  echo
 
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
