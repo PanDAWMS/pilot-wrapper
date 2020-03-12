@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200312a-pilot2
+VERSION=20200312c-pilot2next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -312,6 +312,7 @@ function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
+             -d ids="${pandaids}" -d duration=$2 \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     log $out
@@ -350,7 +351,6 @@ function sortie() {
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
 
-  duration=$(( $(date +%s) - ${starttime} ))
   log "wrapper ${state} ec=$ec, duration=${duration}"
   
   if [[ ${mute} == 'true' ]]; then
@@ -517,24 +517,15 @@ function main() {
   log "==== wrapper stdout RESUME ===="
   log "Pilot exit status: $pilotrc"
   
-  # notify monitoring, job exiting, capture the pilot exit status
-  if [[ -f pilot2/STATUSCODE ]]; then
-    scode=$(cat pilot2/STATUSCODE)
-  else
-    log "Not found: pilot2/STATUSCODE"
-    scode=$pilotrc
-  fi
-  log "STATUSCODE: $scode"
-  apfmon_exiting $scode
-  
-  echo "---- find pandaIDs.out ----"
-  ls -l ${workdir}/pilot2
-  echo
   log "pandaIDs.out files:"
   find ${workdir}/pilot2 -name pandaIDs.out -exec ls -l {} \;
-  log "pandaIDs.out content:"
-  find ${workdir}/pilot2 -name pandaIDs.out -exec cat {} \;
-  echo
+  # note max 30 pandaids for safety
+  pandaids=$(find ${workdir}/pilot2 -name pandaIDs.out -exec cat {} \; | xargs echo | cut -d' ' -f-30)
+  log "pandaids: ${pandaids}"
+
+  duration=$(( $(date +%s) - ${starttime} ))
+  apfmon_exiting ${pilotrc} ${duration}
+  
 
   if [[ ${piloturl} != 'local' ]]; then
       log "cleanup: rm -rf $workdir"
