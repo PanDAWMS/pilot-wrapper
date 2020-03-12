@@ -311,7 +311,7 @@ function apfmon_running() {
 function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
-             -d state=wrapperexiting -d rc=$1 -d uuid=${UUID}
+             -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
              -d ids="${pandaids}" -d duration=$2 \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
