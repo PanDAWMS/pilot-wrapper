@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200316b-pilot2next
+VERSION=20200329a-pilot2next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -110,19 +110,6 @@ function check_cvmfs() {
   fi
 }
   
-function check_tags() {
-  if [ -e /cvmfs/atlas.cern.ch/repo/sw/tags ]; then
-    echo "sha256sum /cvmfs/atlas.cern.ch/repo/sw/tags"
-    sha256sum /cvmfs/atlas.cern.ch/repo/sw/tags
-  else
-    log "ERROR: tags file does not exist: /cvmfs/atlas.cern.ch/repo/sw/tags, exiting."
-    err "ERROR: tags file does not exist: /cvmfs/atlas.cern.ch/repo/sw/tags, exiting."
-    apfmon_fault 1
-    sortie 1
-  fi
-  echo
-}
-
 function setup_alrb() {
   log 'NOTE: rucio,davix,xrootd setup now done in local site setup atlasLocalSetup.sh'
   if [[ ${iarg} == "RC" ]]; then
@@ -231,9 +218,14 @@ function check_arcproxy() {
 }
 
 function pilot_cmd() {
+
   # test if not harvester job 
   if [[ ${harvesterflag} == 'false' ]] ; then  
-    cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+    if [[ -n ${pilotversion} ]]; then
+      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+    else
+      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+    fi
   else
     # check to see if we are running OneToMany Harvester workflow (aka Jumbo Jobs)
     if [[ ${workflowarg} == 'OneToMany' ]] && [ -z ${HARVESTER_PILOT_WORKDIR+x} ] ; then
@@ -245,7 +237,39 @@ function pilot_cmd() {
   echo ${cmd}
 }
 
+function get_piloturl() {
+
+  local version=$1
+  local pilotdir=file:///cvmfs/atlas.cern.ch/repo/sw/PandaPilot/tar
+
+  if [[ -n ${piloturl} ]]; then
+    echo ${piloturl}
+    return 0
+  fi
+
+  if [[ ${version} == '1' ]]; then
+    log "FATAL: pilot version 1 requested, not supported by this wrapper"
+    err "FATAL: pilot version 1 requested, not supported by this wrapper"
+    apfmon 1
+    sortie 1
+  elif [[ ${version} == '2' ]]; then
+    pilottar=${pilotdir}/pilot2.tar.gz
+  elif [[ ${version} == 'latest' ]]; then
+    pilottar=${pilotdir}/pilot2.tar.gz
+  elif [[ ${version} == 'current' ]]; then
+    pilottar=${pilotdir}/pilot2.tar.gz
+  else
+    pilottar=${pilotdir}/pilot2-${version}.tar.gz
+  fi
+  echo ${pilottar}
+}
+
 function get_pilot() {
+
+  local url=$1
+  if [[ ${url} == 'local' ]]; then
+    return 0
+  fi
 
   if [[ ${harvesterflag} == 'true' ]] && [[ ${workflowarg} == 'OneToMany' ]]; then
     cp -v ${HARVESTER_WORK_DIR}/pilot2.tar.gz .
@@ -262,30 +286,19 @@ function get_pilot() {
     return 1
   fi
 
-  if [[ ${piloturl} == 'local' ]]; then
-    log "Local pilotcode will be used since piloturl=local"
-    if [[ -f pilot2/pilot.py ]]; then
-      log "Local pilot OK: $(pwd)/pilot2/pilot.py"
-      return 0
-    else
-      log "Local pilot NOT found: $(pwd)/pilot2/pilot.py"
-      err "Local pilot NOT found: $(pwd)/pilot2/pilot.py"
-      return 1 
-    fi
-  fi
-   
-  curl --connect-timeout 30 --max-time 180 -sSL ${piloturl} | tar -xzf -
+  curl --connect-timeout 30 --max-time 180 -sSL ${url} | tar -xzf -
   if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-    log "ERROR: pilot download failed: ${piloturl}"
-    err "ERROR: pilot download failed: ${piloturl}"
+    log "ERROR: pilot download failed: ${url}"
+    err "ERROR: pilot download failed: ${url}"
     return 1
   fi
+
   if [[ -f pilot2/pilot.py ]]; then
-    log "Pilot download OK: ${piloturl}"
+    log "Pilot download and extraction OK"
     return 0
   else
-    log "ERROR: pilot extraction failed: ${piloturl}"
-    err "ERROR: pilot extraction failed: ${piloturl}"
+    log "ERROR: pilot extraction failed: ${url}"
+    err "ERROR: pilot extraction failed: ${url}"
     return 1
   fi
 }
@@ -352,7 +365,7 @@ function sortie() {
   err "==== wrapper stderr END ===="
 
   duration=$(( $(date +%s) - ${starttime} ))
-  log "wrapper ${state} ec=$ec, duration=${duration}"
+  log "${state} ec=$ec, duration=${duration}"
   
   if [[ ${mute} == 'true' ]]; then
     muted
@@ -422,7 +435,22 @@ function main() {
   echo
   
   echo "---- Retrieve pilot code ----"
-  get_pilot
+  url=$(get_piloturl ${pilotversion})
+  log "Using piloturl: ${url}"
+
+  if [[ ${url} == 'local' ]]; then
+    log "Local pilotcode will be used since piloturl=local"
+    if [[ -f pilot2/pilot.py ]]; then
+      log "Local pilot OK: $(pwd)/pilot2/pilot.py"
+    else
+      log "Local pilot NOT found: $(pwd)/pilot2/pilot.py"
+      err "Local pilot NOT found: $(pwd)/pilot2/pilot.py"
+      apfmon_fault 1
+      sortie 1 
+    fi
+  fi
+
+  get_pilot ${url}
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code"
     err "FATAL: failed to get pilot code"
@@ -495,13 +523,13 @@ function main() {
   fi
   echo
   
+  echo "---- JOB Environment ----"
+  printenv | sort
+  echo
+
   echo "---- Build pilot cmd ----"
   cmd=$(pilot_cmd)
   echo cmd: ${cmd}
-  echo
-
-  echo "---- JOB Environment ----"
-  printenv | sort
   echo
 
   echo "---- Ready to run pilot ----"
@@ -523,6 +551,7 @@ function main() {
   # note max 30 pandaids for safety
   pandaids=$(find ${workdir}/pilot2 -name pandaIDs.out -exec cat {} \; | xargs echo | cut -d' ' -f-30)
   log "pandaids: ${pandaids}"
+  echo
 
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
@@ -549,6 +578,7 @@ function usage () {
   echo "  -r,   panda resource"
   echo "  -s,   sitename for local setup"
   echo "  --piloturl, URL of pilot code tarball, default is http://project-atlas-gmsb.web.cern.ch/project-atlas-gmsb/pilot2.tar.gz"
+  echo "  --pilotversion, request particular pilot version"
   echo
   exit 1
 }
@@ -568,7 +598,8 @@ qarg=''
 rarg=''
 shoalflag=false
 tflag='false'
-piloturl='http://pandaserver.cern.ch:25085/cache/pilot/pilot2.tar.gz'
+piloturl=''
+pilotversion='latest'
 mute='false'
 myargs="$@"
 
@@ -604,6 +635,11 @@ case $key in
     ;;
     --mute)
     mute='true'
+    shift
+    ;;
+    --pilotversion)
+    pilotversion="$2"
+    shift
     shift
     ;;
     --piloturl)
