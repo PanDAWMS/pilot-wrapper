@@ -118,10 +118,7 @@ function setup_alrb() {
   fi
   if [[ ${iarg} == "ALRB" ]]; then
     log 'ALRB pilot requested, setting ALRB env vars to testing'
-    export ALRB_asetupVersion=testing
-    export ALRB_xrootdVersion=testing
-    export ALRB_davixVersion=testing
-    export ALRB_rucioVersion=testing
+    export ALRB_adcTesting=YES
   fi
   export ATLAS_LOCAL_ROOT_BASE=${ATLAS_LOCAL_ROOT_BASE:-/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase}
   export ALRB_userMenuFmtSkip=YES
