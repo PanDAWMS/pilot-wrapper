@@ -577,7 +577,7 @@ function usage () {
   echo "  -q,   panda queue"
   echo "  -r,   panda resource"
   echo "  -s,   sitename for local setup"
-  echo "  --piloturl, URL of pilot code tarball, default is http://project-atlas-gmsb.web.cern.ch/project-atlas-gmsb/pilot2.tar.gz"
+  echo "  --piloturl, URL of pilot code tarball"
   echo "  --pilotversion, request particular pilot version"
   echo
   exit 1
