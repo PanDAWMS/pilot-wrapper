@@ -267,9 +267,6 @@ function get_piloturl() {
 function get_pilot() {
 
   local url=$1
-  if [[ ${url} == 'local' ]]; then
-    return 0
-  fi
 
   if [[ ${harvesterflag} == 'true' ]] && [[ ${workflowarg} == 'OneToMany' ]]; then
     cp -v ${HARVESTER_WORK_DIR}/pilot2.tar.gz .
