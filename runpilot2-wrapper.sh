@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200330c-pilot2
+VERSION=20200331a-pilot2
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -431,18 +431,6 @@ function main() {
   echo "---- Retrieve pilot code ----"
   url=$(get_piloturl ${pilotversion})
   log "Using piloturl: ${url}"
-
-  if [[ ${url} == 'local' ]]; then
-    log "Local pilotcode will be used since piloturl=local"
-    if [[ -f pilot2/pilot.py ]]; then
-      log "Local pilot OK: $(pwd)/pilot2/pilot.py"
-    else
-      log "Local pilot NOT found: $(pwd)/pilot2/pilot.py"
-      err "Local pilot NOT found: $(pwd)/pilot2/pilot.py"
-      apfmon_fault 1
-      sortie 1 
-    fi
-  fi
 
   get_pilot ${url}
   if [[ $? -ne 0 ]]; then
