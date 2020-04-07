@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200331a-pilot2
+VERSION=20200406b-pilot2next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -269,30 +269,35 @@ function get_pilot() {
     cp -v ${HARVESTER_WORK_DIR}/pilot2.tar.gz .
   fi
 
-  if [[ -f pilot2.tar.gz ]]; then
-    tar -xzf pilot2.tar.gz
-    if [ -f pilot2/pilot.py ]; then
-      log "Pilot extracted from existing tarball"
-      return 0
+  if [[ ${url} == 'local' ]]; then
+    log "piloturl=local so download not needed"
+    if [[ -f pilot2.tar.gz ]]; then
+      log "local tarball pilot2.tar.gz exists OK"
+      tar -xzf pilot2.tar.gz
+      if [[ $? -ne 0 ]]; then
+        log "ERROR: pilot extraction failed for pilot2.tar.gz"
+        err "ERROR: pilot extraction failed for pilot2.tar.gz"
+        return 1
+      fi
+    else
+      log "local pilot2.tar.gz not found so assuming already extracted"
     fi
-    log "FATAL: pilot extraction failed"
-    err "FATAL: pilot extraction failed"
-    return 1
-  fi
-
-  curl --connect-timeout 30 --max-time 180 -sSL ${url} | tar -xzf -
-  if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-    log "ERROR: pilot download failed: ${url}"
-    err "ERROR: pilot download failed: ${url}"
-    return 1
+  else
+    curl --connect-timeout 30 --max-time 180 -sSL ${url} | tar -xzf -
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+      log "ERROR: pilot download failed: ${url}"
+      err "ERROR: pilot download failed: ${url}"
+      return 1
+    fi
   fi
 
   if [[ -f pilot2/pilot.py ]]; then
-    log "Pilot download and extraction OK"
+    log "File pilot2/pilot.py exists OK"
+    log "pilot2/PILOTVERSION: $(cat pilot2/PILOTVERSION)"
     return 0
   else
-    log "ERROR: pilot extraction failed: ${url}"
-    err "ERROR: pilot extraction failed: ${url}"
+    log "ERROR: pilot2/pilot.py not found"
+    err "ERROR: pilot2/pilot.py not found"
     return 1
   fi
 }
@@ -533,7 +538,6 @@ function main() {
   # note max 30 pandaids for safety
   pandaids=$(find ${workdir}/pilot2 -name pandaIDs.out -exec cat {} \; | xargs echo | cut -d' ' -f-30)
   log "pandaids: ${pandaids}"
-  echo
 
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
