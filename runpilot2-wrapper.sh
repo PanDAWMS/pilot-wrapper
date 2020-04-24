@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200406b-pilot2next
+VERSION=20200424a-pilot2next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -145,8 +145,8 @@ function setup_alrb() {
     log 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet'
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet
   else
-    log "ERROR: ALRB ATLAS_LOCAL_ROOT_BASE not found: ${ATLAS_LOCAL_ROOT_BASE}, exiting"
-    err "ERROR: ALRB ATLAS_LOCAL_ROOT_BASE not found: ${ATLAS_LOCAL_ROOT_BASE}, exiting"
+    log "FATAL: ALRB ATLAS_LOCAL_ROOT_BASE not found: ${ATLAS_LOCAL_ROOT_BASE}, exiting"
+    err "FATAL: ALRB ATLAS_LOCAL_ROOT_BASE not found: ${ATLAS_LOCAL_ROOT_BASE}, exiting"
     apfmon_fault 1
     sortie 1
   fi
@@ -533,10 +533,10 @@ function main() {
   log "==== wrapper stdout RESUME ===="
   log "Pilot exit status: $pilotrc"
   
-  log "pandaIDs.out files:"
-  find ${workdir}/pilot2 -name pandaIDs.out -exec ls -l {} \;
-  # note max 30 pandaids for safety
-  pandaids=$(find ${workdir}/pilot2 -name pandaIDs.out -exec cat {} \; | xargs echo | cut -d' ' -f-30)
+  log "pandaIDs.out file:"
+  ls -l ${workdir}/pilot2/pandaIDs.out 
+  # max 30 pandaids
+  pandaids=$(cat ${workdir}/pilot2/pandaIDs.out | xargs echo | cut -d' ' -f-30)
   log "pandaids: ${pandaids}"
 
   duration=$(( $(date +%s) - ${starttime} ))
