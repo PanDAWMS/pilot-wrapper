@@ -534,10 +534,15 @@ function main() {
   log "Pilot exit status: $pilotrc"
   
   log "pandaIDs.out file:"
-  ls -l ${workdir}/pilot2/pandaIDs.out 
-  # max 30 pandaids
-  pandaids=$(cat ${workdir}/pilot2/pandaIDs.out | xargs echo | cut -d' ' -f-30)
-  log "pandaids: ${pandaids}"
+  ls -l ${workdir}/pilot2/pandaIDs.out
+  if [[ $? -ne 0 ]]; then
+    log "File not found: ${workdir}/pilot2/pandaIDs.out"
+    pandaids=''
+  else
+    # max 30 pandaids
+    pandaids=$(cat ${workdir}/pilot2/pandaIDs.out | xargs echo | cut -d' ' -f-30)
+    log "pandaids: ${pandaids}"
+  fi
 
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
