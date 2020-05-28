@@ -533,15 +533,14 @@ function main() {
   log "==== wrapper stdout RESUME ===="
   log "Pilot exit status: $pilotrc"
   
-  log "pandaIDs.out file:"
-  ls -l ${workdir}/pilot2/pandaIDs.out
-  if [[ $? -ne 0 ]]; then
-    log "File not found: ${workdir}/pilot2/pandaIDs.out"
-    pandaids=''
-  else
+  if [[ -f ${workdir}/pilot2/pandaIDs.out ]]; then
     # max 30 pandaids
     pandaids=$(cat ${workdir}/pilot2/pandaIDs.out | xargs echo | cut -d' ' -f-30)
     log "pandaids: ${pandaids}"
+  else
+    log "File not found: ${workdir}/pilot2/pandaIDs.out, no payload"
+    err "File not found: ${workdir}/pilot2/pandaIDs.out, no payload"
+    pandaids=''
   fi
 
   duration=$(( $(date +%s) - ${starttime} ))
