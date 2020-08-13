@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200528a-pilot2
+VERSION=20200715a-py3
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -50,7 +50,13 @@ function get_workdir {
 
 
 function check_python() {
-  pybin=$(which python)
+  if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then
+      export ATLAS_LOCAL_ROOT_BASE="/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase"
+  fi
+  export ALRB_LOCAL_PY3="YES"
+  source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
+  lsetup "python pilot-testing"
+  pybin=$(which python3)
   if [[ $? -ne 0 ]]; then
     log "FATAL: python not found in PATH"
     err "FATAL: python not found in PATH"
@@ -64,14 +70,14 @@ function check_python() {
     sortie 1
   fi
     
-  pyver=$($pybin -c "import sys; print '%03d%03d%03d' % sys.version_info[0:3]")
-  # check if native python version > 2.6.0
-  if [[ ${pyver} -ge 002006000 ]] ; then
-    log "Native python version is > 2.6.0 (${pyver})"
+  pyver=$($pybin -c "import sys; print('%03d%03d%03d' % sys.version_info[0:3])")
+  # check if native python version > 3.6.0
+  if [[ ${pyver} -ge 003006000 ]] ; then
+    log "Native python version is > 3.6.0 (${pyver})"
     log "Using ${pybin} for python compatibility"
   else
-    log "ERROR: this site has native python < 2.6.0"
-    err "ERROR: this site has native python < 2.6.0"
+    log "ERROR: this site has native python < 3.6.0"
+    err "ERROR: this site has native python < 3.6.0"
     log "Native python ${pybin} is old: ${pyver}"
   
     # Oh dear, we're doomed...
