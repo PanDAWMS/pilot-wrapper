@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200904c-py3
+VERSION=20200906a-nextpy3
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -509,12 +509,12 @@ function main() {
   echo
   
   echo "---- Check python version ----"
-  if [[ ${py2flag} == 'true' ]]; then
-    log "python2 selected from cmdline"
-    check_python2
-  else
-    log "Default python3 selected from cmdline"
+  if [[ ${py3flag} == 'true' ]]; then
+    log "python3 selected from cmdline"
     check_python3
+  else
+    log "Default python2 selected from cmdline"
+    check_python2
   fi
   echo
 
@@ -720,8 +720,8 @@ case $key in
     shoalflag=true
     shift
     ;;
-    -2)
-    py2flag=true
+    -3)
+    py3flag=true
     shift
     ;;
     -t)
