@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20200903a-pilot2
+VERSION=20200907a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -48,8 +48,7 @@ function get_workdir {
   echo ${temp}
 }
 
-
-function check_python() {
+function check_python2() {
   pybin=$(which python)
   if [[ $? -ne 0 ]]; then
     log "FATAL: python not found in PATH"
@@ -65,13 +64,61 @@ function check_python() {
   fi
     
   pyver=$($pybin -c "import sys; print ('%03d%03d%03d' % sys.version_info[0:3])")
+  # we don't want python3 if requesting default python2
+  if [[ ${pyver} -ge 003000000 ]] ; then
+    log "ERROR: this site has python > 3.0.0, but only python2 requested"
+    err "ERROR: this site has python > 3.0.0, but only python2 requested"
+    apfmon_fault 1
+    sortie 1
+  fi
+
   # check if native python version > 2.6.0
   if [[ ${pyver} -ge 002006000 ]] ; then
     log "Native python version is > 2.6.0 (${pyver})"
     log "Using ${pybin} for python compatibility"
+    return
   else
     log "ERROR: this site has native python < 2.6.0"
     err "ERROR: this site has native python < 2.6.0"
+    log "Native python ${pybin} is old: ${pyver}"
+  
+    # Oh dear, we're doomed...
+    log "FATAL: Failed to find a compatible python, exiting"
+    err "FATAL: Failed to find a compatible python, exiting"
+    apfmon_fault 1
+    sortie 1
+  fi
+}
+
+function check_python3() {
+  if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then
+      export ATLAS_LOCAL_ROOT_BASE="/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase"
+  fi
+  export ALRB_LOCAL_PY3="YES"
+  source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
+  lsetup "python pilot-testing"
+  pybin=$(which python3)
+  if [[ $? -ne 0 ]]; then
+    log "FATAL: python not found in PATH"
+    err "FATAL: python not found in PATH"
+    if [[ -z "${PATH}" ]]; then
+      log "In fact, PATH env var is unset mon amie"
+      err "In fact, PATH env var is unset mon amie"
+    fi
+    log "PATH content is ${PATH}"
+    err "PATH content is ${PATH}"
+    apfmon_fault 1
+    sortie 1
+  fi
+    
+  pyver=$($pybin -c "import sys; print('%03d%03d%03d' % sys.version_info[0:3])")
+  # check if native python version > 3.6.0
+  if [[ ${pyver} -ge 003006000 ]] ; then
+    log "Native python version is > 3.6.0 (${pyver})"
+    log "Using ${pybin} for python compatibility"
+  else
+    log "ERROR: this site has native python < 3.6.0"
+    err "ERROR: this site has native python < 3.6.0"
     log "Native python ${pybin} is old: ${pyver}"
   
     # Oh dear, we're doomed...
@@ -462,7 +509,13 @@ function main() {
   echo
   
   echo "---- Check python version ----"
-  check_python
+  if [[ ${py3flag} == 'true' ]]; then
+    log "python3 selected from cmdline"
+    check_python3
+  else
+    log "Default python2 selected from cmdline"
+    check_python2
+  fi
   echo
 
   echo "---- Check cvmfs area ----"
@@ -569,6 +622,7 @@ function usage () {
   echo "  -s,   sitename for local setup"
   echo "  --piloturl, URL of pilot code tarball"
   echo "  --pilotversion, request particular pilot version"
+  echo "  -3,   use python3"
   echo
   exit 1
 }
@@ -664,6 +718,10 @@ case $key in
     ;;
     -S|--shoal)
     shoalflag=true
+    shift
+    ;;
+    -3)
+    py3flag=true
     shift
     ;;
     -t)
