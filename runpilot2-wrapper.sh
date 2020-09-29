@@ -49,10 +49,10 @@ function get_workdir {
 }
 
 function check_python2() {
-  pybin=$(which python)
+  pybin=$(which python2)
   if [[ $? -ne 0 ]]; then
-    log "FATAL: python not found in PATH"
-    err "FATAL: python not found in PATH"
+    log "FATAL: python2 not found in PATH"
+    err "FATAL: python2 not found in PATH"
     if [[ -z "${PATH}" ]]; then
       log "In fact, PATH env var is unset mon amie"
       err "In fact, PATH env var is unset mon amie"
