@@ -63,23 +63,23 @@ function check_python2() {
     sortie 1
   fi
     
-  pyver=$($pybin -c "import sys; print ('%03d%03d%03d' % sys.version_info[0:3])")
+  pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
   # we don't want python3 if requesting python2 explicitly
-  if [[ ${pyver} -ge 003000000 ]] ; then
-    log "ERROR: this site has python > 3.0.0, but only python2 requested"
-    err "ERROR: this site has python > 3.0.0, but only python2 requested"
+  if [[ ${pyver} -ge 30 ]] ; then
+    log "ERROR: this site has python > 3.0, but only python2 requested"
+    err "ERROR: this site has python > 3.0, but only python2 requested"
     apfmon_fault 1
     sortie 1
   fi
 
-  # check if native python version > 2.6.0
-  if [[ ${pyver} -ge 002006000 ]] ; then
-    log "Native python version is > 2.6.0 (${pyver})"
+  # check if native python version > 2.6
+  if [[ ${pyver} -ge 26 ]] ; then
+    log "Native python version is > 2.6 (${pyver})"
     log "Using ${pybin} for python compatibility"
     return
   else
-    log "ERROR: this site has native python < 2.6.0"
-    err "ERROR: this site has native python < 2.6.0"
+    log "ERROR: this site has native python < 2.6"
+    err "ERROR: this site has native python < 2.6"
     log "Native python ${pybin} is old: ${pyver}"
   
     # Oh dear, we're doomed...
@@ -111,14 +111,14 @@ function check_python3() {
     sortie 1
   fi
     
-  pyver=$($pybin -c "import sys; print('%03d%03d%03d' % sys.version_info[0:3])")
-  # check if native python version > 3.6.0
-  if [[ ${pyver} -ge 003006000 ]] ; then
-    log "Native python version is > 3.6.0 (${pyver})"
+  pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
+  # check if native python version > 3.6
+  if [[ ${pyver} -ge 36 ]] ; then
+    log "Native python version is > 3.6 (${pyver})"
     log "Using ${pybin} for python compatibility"
   else
-    log "ERROR: this site has native python < 3.6.0"
-    err "ERROR: this site has native python < 3.6.0"
+    log "ERROR: this site has native python < 3.6"
+    err "ERROR: this site has native python < 3.6"
     log "Native python ${pybin} is old: ${pyver}"
   
     # Oh dear, we're doomed...
