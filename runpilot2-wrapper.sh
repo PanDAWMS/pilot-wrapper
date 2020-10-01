@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20201001a-pilot2
+VERSION=20201001b-pilot2
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -63,19 +63,11 @@ function check_python2() {
     sortie 1
   fi
     
-<<<<<<< HEAD
-  pyver=$($pybin -c "import sys; print ('%03d%03d%03d' % sys.version_info[0:3])")
-  # we don't want python3 if requesting default python2
-  if [[ ${pyver} -ge 003000000 ]] ; then
-    log "ERROR: this site has python > 3.0.0, but only python2 requested"
-    err "ERROR: this site has python > 3.0.0, but only python2 requested"
-=======
   pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
   # we don't want python3 if requesting python2 explicitly
   if [[ ${pyver} -ge 30 ]] ; then
     log "ERROR: this site has python > 3.0, but only python2 requested"
     err "ERROR: this site has python > 3.0, but only python2 requested"
->>>>>>> next
     apfmon_fault 1
     sortie 1
   fi
