@@ -101,7 +101,7 @@ function setup_python3() {
     fi
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
-    lsetup -q "python pilot-testing" >/dev/null
+    lsetup -q "python pilot-testing" 
   fi
 }
 
