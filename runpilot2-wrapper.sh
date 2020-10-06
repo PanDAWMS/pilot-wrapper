@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20201001a-next
+VERSION=20201006a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -90,13 +90,22 @@ function check_python2() {
   fi
 }
 
-function check_python3() {
-  if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then
-      export ATLAS_LOCAL_ROOT_BASE="/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase"
+function setup_python3() {
+  # setup python3 from ALRB, default for grid sites
+  if [[ ${localpyflag} == 'true' ]]; then
+    log "localpyflag is true so we skip ALRB python3"
+  else
+    log "Using ALRB to setup python3"
+    if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then
+        export ATLAS_LOCAL_ROOT_BASE="/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase"
+    fi
+    export ALRB_LOCAL_PY3="YES"
+    source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
+    lsetup -q "python pilot-testing" >/dev/null
   fi
-  export ALRB_LOCAL_PY3="YES"
-  source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
-  lsetup "python pilot-testing"
+}
+
+function check_python3() {
   pybin=$(which python3)
   if [[ $? -ne 0 ]]; then
     log "FATAL: python not found in PATH"
@@ -511,6 +520,7 @@ function main() {
   echo "---- Check python version ----"
   if [[ ${py3flag} == 'true' ]]; then
     log "python3 selected from cmdline"
+    setup_python3
     check_python3
   else
     log "Default python2 selected from cmdline"
@@ -623,6 +633,7 @@ function usage () {
   echo "  --piloturl, URL of pilot code tarball"
   echo "  --pilotversion, request particular pilot version"
   echo "  -3,   use python3"
+  echo "  --localpy, skip ALRB setup and use local python"
   echo
   exit 1
 }
@@ -640,7 +651,8 @@ iarg='PR'
 jarg='managed'
 qarg=''
 rarg=''
-shoalflag=false
+shoalflag='false'
+localpyflag='false'
 tflag='false'
 piloturl=''
 pilotversion='latest'
@@ -714,6 +726,10 @@ case $key in
     -s)
     sarg="$2"
     shift
+    shift
+    ;;
+    --localpy)
+    localpyflag=true
     shift
     ;;
     -S|--shoal)
