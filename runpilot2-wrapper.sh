@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20201006a-next
+VERSION=20201103a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -101,21 +101,21 @@ function setup_python3() {
     fi
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
-    lsetup -q "python pilot-testing" 
+    lsetup -q "python pilot" 
   fi
 }
 
 function check_python3() {
   pybin=$(which python3)
   if [[ $? -ne 0 ]]; then
-    log "FATAL: python not found in PATH"
-    err "FATAL: python not found in PATH"
+    log "FATAL: python3 not found in PATH"
+    err "FATAL: python3 not found in PATH"
     if [[ -z "${PATH}" ]]; then
       log "In fact, PATH env var is unset mon amie"
       err "In fact, PATH env var is unset mon amie"
     fi
-    log "PATH content is ${PATH}"
-    err "PATH content is ${PATH}"
+    log "PATH content: ${PATH}"
+    err "PATH content: ${PATH}"
     apfmon_fault 1
     sortie 1
   fi
@@ -311,6 +311,8 @@ function get_piloturl() {
     pilottar=${pilotdir}/pilot2.tar.gz
   elif [[ ${version} == 'current' ]]; then
     pilottar=${pilotdir}/pilot2.tar.gz
+  elif [[ ${version} == '3' ]]; then
+    pilottar=${pilotdir}/pilot3.tar.gz
   else
     pilottar=${pilotdir}/pilot2-${version}.tar.gz
   fi
@@ -518,7 +520,7 @@ function main() {
   echo
   
   echo "---- Check python version ----"
-  if [[ ${py3flag} == 'true' ]]; then
+  if [[ ${pythonversion} == '3' ]]; then
     log "python3 selected from cmdline"
     setup_python3
     check_python3
@@ -632,7 +634,7 @@ function usage () {
   echo "  -s,   sitename for local setup"
   echo "  --piloturl, URL of pilot code tarball"
   echo "  --pilotversion, request particular pilot version"
-  echo "  -3,   use python3"
+  echo "  --pythonversion,   valid values '2' (default), and '3'"
   echo "  --localpy, skip ALRB setup and use local python"
   echo
   exit 1
@@ -656,6 +658,7 @@ localpyflag='false'
 tflag='false'
 piloturl=''
 pilotversion='latest'
+pythonversion='2'
 mute='false'
 myargs="$@"
 
@@ -695,6 +698,11 @@ case $key in
     ;;
     --pilotversion)
     pilotversion="$2"
+    shift
+    shift
+    ;;
+    --pythonversion)
+    pythonversion="$2"
     shift
     shift
     ;;
