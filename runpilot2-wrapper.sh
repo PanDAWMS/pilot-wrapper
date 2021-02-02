@@ -587,7 +587,7 @@ function main() {
   echo
 
   echo "---- Ready to run pilot ----"
-  trap trap_handler SIGTERM SIGQUIT SIGSEGV SIGXCPU SIGUSR1 SIGBUS
+  trap trap_handler SIGINT SIGTERM SIGQUIT SIGSEGV SIGXCPU SIGUSR1 SIGBUS
   echo
 
   log "==== pilot stdout BEGIN ===="
