@@ -217,11 +217,8 @@ function setup_local() {
     log 'WARNING: No ATLAS local setup found'
     err 'WARNING: this site has no local setup ${VO_ATLAS_SW_DIR}/local/setup.sh'
   fi
-  # OSG MW setup
-  if [[ -f ${OSG_GRID}/setup.sh ]]; then
-    log "Setting up OSG MW using ${OSG_GRID}/setup.sh"
-    source ${OSG_GRID}/setup.sh
-  fi
+  # OSG MW setup, removed 2021-02-12
+  log 'NOTICE: no longer sourcing ${OSG_GRID}/setup.sh script 2021-02-12'
 }
 
 function setup_shoal() {
