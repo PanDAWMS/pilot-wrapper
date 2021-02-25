@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210212a-next
+VERSION=20210225a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -101,7 +101,7 @@ function setup_python3() {
     fi
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
-    lsetup -q "python pilot" 
+    lsetup -q "python pilot-default" 
   fi
 }
 
@@ -217,8 +217,16 @@ function setup_local() {
     log 'WARNING: No ATLAS local setup found'
     err 'WARNING: this site has no local setup ${VO_ATLAS_SW_DIR}/local/setup.sh'
   fi
-  # OSG MW setup, removed 2021-02-12
-  log 'NOTICE: no longer sourcing ${OSG_GRID}/setup.sh script 2021-02-12'
+  # OSG MW setup, skip if not using ALRB Grid MW
+  if [[ ${ALRB_noGridMW} == "YES" ]]; then
+    if [[ -f ${OSG_GRID}/setup.sh ]]; then
+      log "Setting up OSG MW using ${OSG_GRID}/setup.sh"
+      source ${OSG_GRID}/setup.sh
+    else
+      log 'Env var ALRB_noGridMW=NO, not sourcing ${OSG_GRID}/setup.sh'
+    fi
+  fi
+
 }
 
 function setup_shoal() {
