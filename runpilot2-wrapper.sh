@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210225a-next
+VERSION=20210304a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -102,6 +102,7 @@ function setup_python3() {
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
     lsetup -q "python pilot-default" 
+    source /cvmfs/atlas.cern.ch/repo/sw/local/setup-yampl.sh -a x86_64-centos7-gcc8-opt
   fi
 }
 
