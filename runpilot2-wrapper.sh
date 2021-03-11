@@ -225,12 +225,12 @@ function setup_shoal() {
   log "will set FRONTIER_SERVER with shoal"
   if [[ -n "${FRONTIER_SERVER}" ]] ; then
     export FRONTIER_SERVER
-    log "call shoal frontier"
-    outputstr=`shoal-client -f`
-    log "result: $outputstr"
+    outputstr=$(shoal-client -f)
 
-    if [[ $? -eq 0 ]] && [ "$outputstr" != "" ] ; then
-      export FRONTIER_SERVER=$outputstr
+    if [[ $? -eq 0 ]] && [ "${outputstr}" != "" ] ; then
+      export FRONTIER_SERVER=${outputstr}
+    else
+      log "WARNING: shoal-client unexpected output: ${outputstr}
     fi
 
     log "set FRONTIER_SERVER = $FRONTIER_SERVER"
