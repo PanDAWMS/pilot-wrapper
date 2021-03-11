@@ -230,7 +230,7 @@ function setup_shoal() {
     if [[ $? -eq 0 ]] && [ "${outputstr}" != "" ] ; then
       export FRONTIER_SERVER=${outputstr}
     else
-      log "WARNING: shoal-client unexpected output: ${outputstr}
+      log "WARNING: shoal-client unexpected output: ${outputstr}"
     fi
 
     log "set FRONTIER_SERVER = $FRONTIER_SERVER"
