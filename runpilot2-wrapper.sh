@@ -102,7 +102,10 @@ function setup_python3() {
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
     lsetup -q "python pilot-default" 
+<<<<<<< HEAD
     source /cvmfs/atlas.cern.ch/repo/sw/local/setup-yampl.sh -a x86_64-centos7-gcc8-opt
+=======
+>>>>>>> master
   fi
 }
 
@@ -234,12 +237,12 @@ function setup_shoal() {
   log "will set FRONTIER_SERVER with shoal"
   if [[ -n "${FRONTIER_SERVER}" ]] ; then
     export FRONTIER_SERVER
-    log "call shoal frontier"
-    outputstr=`shoal-client -f`
-    log "result: $outputstr"
+    outputstr=$(shoal-client -f)
 
-    if [[ $? -eq 0 ]] && [ "$outputstr" != "" ] ; then
-      export FRONTIER_SERVER=$outputstr
+    if [[ $? -eq 0 ]] && [ "${outputstr}" != "" ] ; then
+      export FRONTIER_SERVER=${outputstr}
+    else
+      log "WARNING: shoal-client unexpected output: ${outputstr}
     fi
 
     log "set FRONTIER_SERVER = $FRONTIER_SERVER"
