@@ -238,7 +238,7 @@ function setup_shoal() {
     outputstr=`shoal-client -f`
     log "result: $outputstr"
 
-    if [[ $? -eq 0 ]] ; then
+    if [[ $? -eq 0 ]] && [ "$outputstr" != "" ] ; then
       export FRONTIER_SERVER=$outputstr
     fi
 
