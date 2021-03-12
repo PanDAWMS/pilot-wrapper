@@ -234,7 +234,7 @@ function setup_shoal() {
   log "will set FRONTIER_SERVER with shoal"
   if [[ -n "${FRONTIER_SERVER}" ]] ; then
     export FRONTIER_SERVER
-    outputstr=$(shoal-client -f)
+    outputstr=$(env -i FRONTIER_SERVER="$FRONTIER_SERVER" shoal-client -f)
 
     if [[ $? -eq 0 ]] && [ "${outputstr}" != "" ] ; then
       export FRONTIER_SERVER=${outputstr}
@@ -640,6 +640,8 @@ function usage () {
   echo "  -q,   panda queue"
   echo "  -r,   panda resource"
   echo "  -s,   sitename for local setup"
+  echo "  -t,   pass -t option to pilot, skipping proxy check"
+  echo "  -S,   setup shoal client"
   echo "  --piloturl, URL of pilot code tarball"
   echo "  --pilotversion, request particular pilot version"
   echo "  --pythonversion,   valid values '2' (default), and '3'"
