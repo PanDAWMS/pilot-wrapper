@@ -234,9 +234,15 @@ function setup_shoal() {
   log "will set FRONTIER_SERVER with shoal"
   if [[ -n "${FRONTIER_SERVER}" ]] ; then
     export FRONTIER_SERVER
-    outputstr=$(env -i FRONTIER_SERVER="$FRONTIER_SERVER" shoal-client -f)
+    sccmd=$(which shoal-client)
+    if [[ $? -eq 0 ]]; then
+      outputstr=$(env -i FRONTIER_SERVER="$FRONTIER_SERVER" $sccmd -f)
+    else
+      log "WARNING: shoal-client cmd not found"
+      return 1
+    fi
 
-    if [[ $? -eq 0 ]] && [ "${outputstr}" != "" ] ; then
+    if [[ -n "${outputstr}" ]] ; then
       export FRONTIER_SERVER=${outputstr}
     else
       log "WARNING: shoal-client unexpected output: ${outputstr}"
