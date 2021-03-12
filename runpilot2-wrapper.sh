@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210312c-next
+VERSION=20210312d-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -236,7 +236,7 @@ function setup_shoal() {
     export FRONTIER_SERVER
     sccmd=$(which shoal-client)
     if [[ $? -eq 0 ]]; then
-      outputstr=$(env -i FRONTIER_SERVER="$FRONTIER_SERVER" $sccmd -f)
+      outputstr=$(env -i FRONTIER_SERVER="$FRONTIER_SERVER"  /bin/bash -l -c "shoal-client -f")
     else
       log "WARNING: shoal-client cmd not found"
       return 1
