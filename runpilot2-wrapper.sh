@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210312d-next
+VERSION=20210315a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -232,24 +232,15 @@ function setup_local() {
 
 function setup_shoal() {
   log "will set FRONTIER_SERVER with shoal"
-  if [[ -n "${FRONTIER_SERVER}" ]] ; then
-    export FRONTIER_SERVER
-    sccmd=$(which shoal-client)
-    if [[ $? -eq 0 ]]; then
-      outputstr=$(env -i FRONTIER_SERVER="$FRONTIER_SERVER"  /bin/bash -l -c "shoal-client -f")
-    else
-      log "WARNING: shoal-client cmd not found"
-      return 1
-    fi
 
-    if [[ -n "${outputstr}" ]] ; then
-      export FRONTIER_SERVER=${outputstr}
-    else
-      log "WARNING: shoal-client unexpected output: ${outputstr}"
-    fi
-
-    log "set FRONTIER_SERVER = $FRONTIER_SERVER"
+  outputstr=$(env -i FRONTIER_SERVER="$FRONTIER_SERVER"  /bin/bash -l -c "shoal-client -f")
+  if [[ $? -eq 0 ]] &&  [[ -n "${outputstr}" ]] ; then
+   export FRONTIER_SERVER=${outputstr}
+  else
+    log "WARNING: shoal-client had non-zero exit code or empty output"
   fi
+
+  log "FRONTIER_SERVER = $FRONTIER_SERVER"
 }
 
 function setup_harvester_symlinks() {
