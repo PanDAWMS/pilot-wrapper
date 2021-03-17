@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210311b-master
+VERSION=20210317a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -102,6 +102,7 @@ function setup_python3() {
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
     lsetup -q "python pilot-default" 
+    #source /cvmfs/atlas.cern.ch/repo/sw/local/setup-yampl.sh -a x86_64-centos7-gcc8-opt
   fi
 }
 
@@ -217,24 +218,29 @@ function setup_local() {
     log 'WARNING: No ATLAS local setup found'
     err 'WARNING: this site has no local setup ${VO_ATLAS_SW_DIR}/local/setup.sh'
   fi
-  # OSG MW setup, removed 2021-02-12
-  log 'NOTICE: no longer sourcing ${OSG_GRID}/setup.sh script 2021-02-12'
+  # OSG MW setup, skip if not using ALRB Grid MW
+  if [[ ${ALRB_noGridMW} == "YES" ]]; then
+    if [[ -f ${OSG_GRID}/setup.sh ]]; then
+      log "Setting up OSG MW using ${OSG_GRID}/setup.sh"
+      source ${OSG_GRID}/setup.sh
+    else
+      log 'Env var ALRB_noGridMW=NO, not sourcing ${OSG_GRID}/setup.sh'
+    fi
+  fi
+
 }
 
 function setup_shoal() {
   log "will set FRONTIER_SERVER with shoal"
-  if [[ -n "${FRONTIER_SERVER}" ]] ; then
-    export FRONTIER_SERVER
-    outputstr=$(shoal-client -f)
 
-    if [[ $? -eq 0 ]] && [ "${outputstr}" != "" ] ; then
-      export FRONTIER_SERVER=${outputstr}
-    else
-      log "WARNING: shoal-client unexpected output: ${outputstr}"
-    fi
-
-    log "set FRONTIER_SERVER = $FRONTIER_SERVER"
+  outputstr=$(env -i FRONTIER_SERVER="$FRONTIER_SERVER"  /bin/bash -l -c "shoal-client -f")
+  if [[ $? -eq 0 ]] &&  [[ -n "${outputstr}" ]] ; then
+    export FRONTIER_SERVER=${outputstr}
+  else
+    log "WARNING: shoal-client had non-zero exit code or empty output"
   fi
+
+  log "FRONTIER_SERVER = $FRONTIER_SERVER"
 }
 
 function setup_harvester_symlinks() {
@@ -631,6 +637,8 @@ function usage () {
   echo "  -q,   panda queue"
   echo "  -r,   panda resource"
   echo "  -s,   sitename for local setup"
+  echo "  -t,   pass -t option to pilot, skipping proxy check"
+  echo "  -S,   setup shoal client"
   echo "  --piloturl, URL of pilot code tarball"
   echo "  --pilotversion, request particular pilot version"
   echo "  --pythonversion,   valid values '2' (default), and '3'"
