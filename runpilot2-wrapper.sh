@@ -590,7 +590,10 @@ function main() {
   echo
 
   echo "---- Ready to run pilot ----"
-  trap trap_handler SIGINT SIGTERM SIGQUIT SIGSEGV SIGXCPU SIGUSR1 SIGBUS
+  trap trap_handler SIGINT SIGTERM SIGQUIT SIGSEGV SIGXCPU SIGUSR1 SIGBUS SIGUSR2
+  if [[ $? -ne 0 ]]; then
+    log "WARNING: trap handling non-zero exit code"
+  fi
   echo
 
   log "==== pilot stdout BEGIN ===="
