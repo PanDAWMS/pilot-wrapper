@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210317a-master
+VERSION=20210329a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -590,7 +590,14 @@ function main() {
   echo
 
   echo "---- Ready to run pilot ----"
-  trap trap_handler SIGINT SIGTERM SIGQUIT SIGSEGV SIGXCPU SIGUSR1 SIGBUS
+  trap 'trap_handler SIGINT' SIGINT
+  trap 'trap_handler SIGTERM' SIGTERM
+  trap 'trap_handler SIGQUIT' SIGQUIT
+  trap 'trap_handler SIGSEGV' SIGSEGV
+  trap 'trap_handler SIGXCPU' SIGXCPU
+  trap 'trap_handler SIGUSR1' SIGUSR1
+  trap 'trap_handler SIGUSR2' SIGUSR2
+  trap 'trap_handler SIGBUS' SIGBUS
   echo
 
   log "==== pilot stdout BEGIN ===="
