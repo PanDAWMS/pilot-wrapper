@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210329a-master
+VERSION=20210415a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -102,7 +102,7 @@ function setup_python3() {
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
     lsetup -q "python pilot-default" 
-    #source /cvmfs/atlas.cern.ch/repo/sw/local/setup-yampl.sh -a x86_64-centos7-gcc8-opt
+    source /cvmfs/atlas.cern.ch/repo/sw/local/setup-yampl.sh -p python3
   fi
 }
 
@@ -410,9 +410,13 @@ function apfmon_fault() {
 }
 
 function trap_handler() {
-  log "Caught $1, signalling pilot PID: $pilotpid"
-  kill -s $1 $pilotpid
-  wait
+  if [[ -n "${pilotpid}" ]]; then
+    log "WARNING: Caught $1, signalling pilot PID: $pilotpid"
+    kill -s $1 $pilotpid
+    wait
+  else
+    log "WARNING: Caught $1 prior to pilot starting"
+  fi
 }
 
 function sortie() {
@@ -443,6 +447,14 @@ function main() {
   #
   # Fail early, fail often^W with useful diagnostics
   #
+  trap 'trap_handler SIGINT' SIGINT
+  trap 'trap_handler SIGTERM' SIGTERM
+  trap 'trap_handler SIGQUIT' SIGQUIT
+  trap 'trap_handler SIGSEGV' SIGSEGV
+  trap 'trap_handler SIGXCPU' SIGXCPU
+  trap 'trap_handler SIGUSR1' SIGUSR1
+  trap 'trap_handler SIGUSR2' SIGUSR2
+  trap 'trap_handler SIGBUS' SIGBUS
 
   echo "This is ATLAS pilot2 wrapper version: $VERSION"
   echo "Please send development requests to p.love@lancaster.ac.uk"
@@ -590,14 +602,6 @@ function main() {
   echo
 
   echo "---- Ready to run pilot ----"
-  trap 'trap_handler SIGINT' SIGINT
-  trap 'trap_handler SIGTERM' SIGTERM
-  trap 'trap_handler SIGQUIT' SIGQUIT
-  trap 'trap_handler SIGSEGV' SIGSEGV
-  trap 'trap_handler SIGXCPU' SIGXCPU
-  trap 'trap_handler SIGUSR1' SIGUSR1
-  trap 'trap_handler SIGUSR2' SIGUSR2
-  trap 'trap_handler SIGBUS' SIGBUS
   echo
 
   log "==== pilot stdout BEGIN ===="
@@ -756,10 +760,6 @@ case $key in
     ;;
     -S|--shoal)
     shoalflag=true
-    shift
-    ;;
-    -3)
-    pythonversion="3"
     shift
     ;;
     -t)
