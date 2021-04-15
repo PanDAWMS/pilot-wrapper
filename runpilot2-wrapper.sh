@@ -762,10 +762,6 @@ case $key in
     shoalflag=true
     shift
     ;;
-    -3)
-    pythonversion="3"
-    shift
-    ;;
     -t)
     tflag='true'
     POSITIONAL+=("$1") # save it in an array for later
