@@ -102,7 +102,7 @@ function setup_python3() {
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
     lsetup -q "python pilot-default" 
-    source /cvmfs/atlas.cern.ch/repo/sw/local/setup-yampl.sh -a x86_64-centos7-gcc8-opt
+    source /cvmfs/atlas.cern.ch/repo/sw/local/setup-yampl.sh -p python3
   fi
 }
 
