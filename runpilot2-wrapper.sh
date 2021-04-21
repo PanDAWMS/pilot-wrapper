@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210415a-master
+VERSION=20210420a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -102,7 +102,6 @@ function setup_python3() {
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
     lsetup -q "python pilot-default" 
-    source /cvmfs/atlas.cern.ch/repo/sw/local/setup-yampl.sh -p python3
   fi
 }
 
@@ -212,8 +211,13 @@ function setup_alrb() {
 function setup_local() {
   log "Looking for ${VO_ATLAS_SW_DIR}/local/setup.sh"
   if [[ -f ${VO_ATLAS_SW_DIR}/local/setup.sh ]]; then
-    log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}"
-    source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}
+    if [[ ${pythonversion} == '3' ]]; then
+      log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg} -p python3"
+      source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg} -p python3
+    else
+      log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}"
+      source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}
+    fi
   else
     log 'WARNING: No ATLAS local setup found'
     err 'WARNING: this site has no local setup ${VO_ATLAS_SW_DIR}/local/setup.sh'
