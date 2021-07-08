@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210420a-master
+VERSION=20210708a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -94,13 +94,16 @@ function setup_python3() {
   # setup python3 from ALRB, default for grid sites
   if [[ ${localpyflag} == 'true' ]]; then
     log "localpyflag is true so we skip ALRB python3"
+  elif [[ ${ATLAS_LOCAL_PYTHON} == 'true' ]]; then
+    # email thread 7/7/21 dealing with LRZ SUSE
+    log "Env var ATLAS_LOCAL_PYTHON=true so skip ALRB python3"
   else
     log "Using ALRB to setup python3"
     if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then
         export ATLAS_LOCAL_ROOT_BASE="/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase"
     fi
     export ALRB_LOCAL_PY3="YES"
-    source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
+    source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet
     lsetup -q "python pilot-default" 
   fi
 }
@@ -121,14 +124,14 @@ function check_python3() {
   fi
     
   pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
-  # check if native python version > 3.6
+  # check if python version > 3.6
   if [[ ${pyver} -ge 36 ]] ; then
-    log "Native python version is > 3.6 (${pyver})"
+    log "Python version is > 3.6 (${pyver})"
     log "Using ${pybin} for python compatibility"
   else
-    log "ERROR: this site has native python < 3.6"
-    err "ERROR: this site has native python < 3.6"
-    log "Native python ${pybin} is old: ${pyver}"
+    log "ERROR: this site has python < 3.6"
+    err "ERROR: this site has python < 3.6"
+    log "Python ${pybin} is old: ${pyver}"
   
     # Oh dear, we're doomed...
     log "FATAL: Failed to find a compatible python, exiting"
