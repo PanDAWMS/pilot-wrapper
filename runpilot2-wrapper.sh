@@ -4,16 +4,16 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210811a-master
+VERSION=20210913b-sing
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
-  echo $dt $@ >&2
+  echo "$dt $@" >&2
 }
 
 function log() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
-  echo $dt $@
+  echo "$dt $@"
 }
 
 function get_workdir {
@@ -300,6 +300,12 @@ function pilot_cmd() {
   echo ${cmd}
 }
 
+function sing_cmd() {
+  proxydir=$(dirname ${X509_USER_PROXY})
+  cmd="$BINARY_PATH exec --bind /cvmfs,${proxydir} $IMAGE_PATH ${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+  echo ${cmd}
+}
+
 function get_piloturl() {
 
   local version=$1
@@ -449,6 +455,51 @@ function sortie() {
   exit $ec
 }
 
+function check_singularity() {
+  SINGULARITY_IMAGE="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
+  BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/x86_64-el7/current/bin/singularity"
+  IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
+  SINGULARITY_OPTIONS="-B /cvmfs -B /dss"
+  out=$(${BINARY_PATH} --version 2>/dev/null)
+  if [[ $? -eq 0 ]]; then
+    log "Singularity binary found, version $out"
+    log "Singularity binary path: ${BINARY_PATH}"
+  else
+    log "Singularity binary not found"
+  fi
+}
+
+function get_singopts() {
+  if [[ -f queuedata.json ]]; then
+    container_opts=$(cat queuedata.json | grep container_options | grep -v null)
+  else
+    container_opts=$(curl --silent $url | grep container_options | grep -v null)
+  fi
+  if [[ $? -eq 0 ]]; then
+    singopts=$(echo $container_opts | awk -F"\"" '{print $4}')
+    echo ${singopts}
+    return 0
+  else
+    echo ''
+    return 0
+  fi
+}
+
+function check_cric() {
+  if [[ -f queuedata.json ]]; then
+    result=$(cat queuedata.json | grep container_type | grep 'singularity:wrapper')
+  else
+    result=$(curl --silent $url | grep container_type | grep 'singularity:wrapper')
+  fi
+  if [[ $? -eq 0 ]]; then
+    log "AGIS container_type: singularity:wrapper found"
+    return 0
+  else
+    log "AGIS container_type does not contain singularity:wrapper"
+    return 1
+  fi
+}
+
 
 function main() {
   #
@@ -466,11 +517,62 @@ function main() {
   echo "This is ATLAS pilot2 wrapper version: $VERSION"
   echo "Please send development requests to p.love@lancaster.ac.uk"
 
-  log "==== wrapper stdout BEGIN ===="
-  err "==== wrapper stderr BEGIN ===="
-  UUID=$(cat /proc/sys/kernel/random/uuid)
-  apfmon_running
-  echo
+  if [[ -z ${SINGULARITY_INIT} ]]; then
+    log "==== wrapper stdout BEGIN ===="
+    err "==== wrapper stderr BEGIN ===="
+    UUID=$(cat /proc/sys/kernel/random/uuid)
+    apfmon_running
+    echo
+
+    echo "---- Check singularity details (development) ----"
+    sing_opts=$(get_singopts)
+    echo $sing_opts
+
+    check_cric
+    if [[ $? -eq 0 ]]; then
+      use_singularity=true
+    else
+      use_singularity=true  # always for testing
+      #PAL use_singularity=false
+    fi
+
+    if [[ ${use_singularity} = true ]]; then
+      # check if already in SINGULARITY environment
+      log 'SINGULARITY_INIT is not set'
+      echo "---- Check singularity details (development) ----"
+      check_singularity
+      export ALRB_noGridMW=NO
+      export SINGULARITYENV_PATH=${PATH}
+      export SINGULARITYENV_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+      #echo '   _____ _                   __           _ __        '
+      #echo '  / ___/(_)___  ____ ___  __/ /___ ______(_) /___  __ '
+      #echo '  \__ \/ / __ \/ __ `/ / / / / __ `/ ___/ / __/ / / / '
+      #echo ' ___/ / / / / / /_/ / /_/ / / /_/ / /  / / /_/ /_/ /  '
+      #echo '/____/_/_/ /_/\__, /\__,_/_/\__,_/_/  /_/\__/\__, /   '
+      #echo '             /____/                         /____/    '
+      echo
+      cmd="singularity exec $sing_opts $SINGULARITY_IMAGE $0 $@"
+      echo "cmd: $cmd"
+      echo
+      log '==== singularity stdout BEGIN ===='
+      err '==== singularity stderr BEGIN ===='
+      $cmd &
+      singpid=$!
+      wait $singpid
+      log "singularity return code: $?"
+      log '==== singularity stdout END ===='
+      err '==== singularity stderr END ===='
+      log "==== wrapper stdout END ===="
+      err "==== wrapper stderr END ===="
+      exit 0
+    else
+      log 'Will NOT use singularity, at least not from the wrapper'
+    fi
+    echo
+  else
+    log 'SINGULARITY_INIT is set, run basic setup'
+    export ALRB_noGridMW=NO
+  fi
 
   echo "---- Host details ----"
   echo "hostname:" $(hostname -f)
@@ -482,6 +584,7 @@ function main() {
     echo "/proc/version:" $(cat /proc/version)
   fi
   echo "lsb_release:" $(lsb_release -d 2>/dev/null)
+  echo "SINGULARITY_INIT:" ${SINGULARITY_INIT}
   
   myargs=$@
   echo "wrapper call: $0 $myargs"
@@ -605,7 +708,7 @@ function main() {
 
   echo "---- Build pilot cmd ----"
   cmd=$(pilot_cmd)
-  echo cmd: ${cmd}
+  echo $cmd
   echo
 
   echo "---- Ready to run pilot ----"
@@ -614,11 +717,11 @@ function main() {
   log "==== pilot stdout BEGIN ===="
   $cmd &
   pilotpid=$!
-  log "pilotpid: $pilotpid"
   wait $pilotpid
   pilotrc=$?
   log "==== pilot stdout END ===="
   log "==== wrapper stdout RESUME ===="
+  log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
   
   if [[ -f ${workdir}/pilot2/pandaIDs.out ]]; then
@@ -786,6 +889,7 @@ if [ -z "${qarg}" ]; then usage; exit 1; fi
 
 pilotargs="$@"
 
+agisurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
 fabricmon="http://fabricmon.cern.ch/api"
 fabricmon="http://apfmon.lancs.ac.uk/api"
 if [ -z ${APFMON} ]; then
