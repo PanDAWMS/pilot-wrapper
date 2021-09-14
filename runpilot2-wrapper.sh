@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210811a-master
+VERSION=20210914a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -217,9 +217,13 @@ function setup_local() {
     if [[ ${pythonversion} == '3' ]]; then
       log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg} -p python3"
       source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg} -p python3
+      log "Content of ${VO_ATLAS_SW_DIR}/local/setup.sh"
+      cat ${VO_ATLAS_SW_DIR}/local/setup.sh
     else
       log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}"
       source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}
+      log "Content of ${VO_ATLAS_SW_DIR}/local/setup.sh"
+      cat ${VO_ATLAS_SW_DIR}/local/setup.sh
     fi
   else
     log 'WARNING: No ATLAS local setup found'
