@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210914a-sing
+VERSION=20210915a-sing
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -473,7 +473,7 @@ function get_singopts() {
   if [[ -f queuedata.json ]]; then
     container_opts=$(cat queuedata.json | grep container_options | grep -v null)
   else
-    container_opts=$(curl --silent $url | grep container_options | grep -v null)
+    container_opts=$(curl --silent $cricurl | grep container_options | grep -v null)
   fi
   if [[ $? -eq 0 ]]; then
     singopts=$(echo $container_opts | awk -F"\"" '{print $4}')
@@ -489,7 +489,7 @@ function check_cric() {
   if [[ -f queuedata.json ]]; then
     result=$(cat queuedata.json | grep container_type | grep 'singularity:wrapper')
   else
-    result=$(curl --silent $url | grep container_type | grep 'singularity:wrapper')
+    result=$(curl --silent $cricurl | grep container_type | grep 'singularity:wrapper')
   fi
   if [[ $? -eq 0 ]]; then
     log "AGIS container_type: singularity:wrapper found"
@@ -522,6 +522,8 @@ function main() {
     err "==== wrapper stderr BEGIN ===="
     UUID=$(cat /proc/sys/kernel/random/uuid)
     apfmon_running
+    echo
+    printenv | sort
     echo
 
     echo "---- Check singularity details (development) ----"
@@ -619,10 +621,10 @@ function main() {
   echo
   
   echo "---- Retrieve pilot code ----"
-  url=$(get_piloturl ${pilotversion})
-  log "Using piloturl: ${url}"
+  piloturl=$(get_piloturl ${pilotversion})
+  log "Using piloturl: ${piloturl}"
 
-  get_pilot ${url}
+  get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code"
     err "FATAL: failed to get pilot code"
@@ -889,7 +891,7 @@ if [ -z "${qarg}" ]; then usage; exit 1; fi
 
 pilotargs="$@"
 
-agisurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
+cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
 fabricmon="http://fabricmon.cern.ch/api"
 fabricmon="http://apfmon.lancs.ac.uk/api"
 if [ -z ${APFMON} ]; then
