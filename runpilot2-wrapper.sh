@@ -605,8 +605,10 @@ function main() {
   if [[ -n ${ATLAS_LOCAL_AREA} ]]; then
     log "Content of $ATLAS_LOCAL_AREA/setup.sh.local"
     cat $ATLAS_LOCAL_AREA/setup.sh.local
+    echo
   else
     log "Empty: \$ATLAS_LOCAL_AREA"
+    echo
   fi
 
   echo "---- Build pilot cmd ----"
