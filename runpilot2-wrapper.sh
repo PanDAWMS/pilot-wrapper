@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210915a-sing
+VERSION=20210929c-sing
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -301,8 +301,9 @@ function pilot_cmd() {
 }
 
 function sing_cmd() {
-  proxydir=$(dirname ${X509_USER_PROXY})
-  cmd="$BINARY_PATH exec --bind /cvmfs,${proxydir} $IMAGE_PATH ${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+#  proxydir=$(dirname ${X509_USER_PROXY})
+#  cmd="$BINARY_PATH exec --bind /cvmfs,${proxydir} $IMAGE_PATH ${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+  cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS $IMAGE_PATH $0 $myargs"
   echo ${cmd}
 }
 
@@ -459,7 +460,7 @@ function check_singularity() {
   SINGULARITY_IMAGE="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
   BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/x86_64-el7/current/bin/singularity"
   IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
-  SINGULARITY_OPTIONS="-B /cvmfs -B /dss"
+  SINGULARITY_OPTIONS="-B /cvmfs -B /scratch"
   out=$(${BINARY_PATH} --version 2>/dev/null)
   if [[ $? -eq 0 ]]; then
     log "Singularity binary found, version $out"
@@ -485,17 +486,17 @@ function get_singopts() {
   fi
 }
 
-function check_cric() {
+function check_type() {
   if [[ -f queuedata.json ]]; then
     result=$(cat queuedata.json | grep container_type | grep 'singularity:wrapper')
   else
     result=$(curl --silent $cricurl | grep container_type | grep 'singularity:wrapper')
   fi
   if [[ $? -eq 0 ]]; then
-    log "AGIS container_type: singularity:wrapper found"
+    log "CRIC container_type: singularity:wrapper found"
     return 0
   else
-    log "AGIS container_type does not contain singularity:wrapper"
+    log "CRIC container_type: singularity:wrapper not found"
     return 1
   fi
 }
@@ -514,15 +515,17 @@ function main() {
   trap 'trap_handler SIGUSR2' SIGUSR2
   trap 'trap_handler SIGBUS' SIGBUS
 
-  echo "This is ATLAS pilot2 wrapper version: $VERSION"
-  echo "Please send development requests to p.love@lancaster.ac.uk"
-
-  if [[ -z ${SINGULARITY_INIT} ]]; then
+  if [[ -z ${SINGULARITY_ENVIRONMENT} ]]; then
+    # SINGULARITY_ENVIRONMENT not set
+    echo "This is ATLAS pilot2 wrapper version: $VERSION"
+    echo "Please send development requests to p.love@lancaster.ac.uk"
+    echo
     log "==== wrapper stdout BEGIN ===="
     err "==== wrapper stderr BEGIN ===="
     UUID=$(cat /proc/sys/kernel/random/uuid)
     apfmon_running
     echo
+    echo "---- Initial environment ----"
     printenv | sort
     echo
 
@@ -530,9 +533,10 @@ function main() {
     sing_opts=$(get_singopts)
     echo $sing_opts
 
-    check_cric
+    check_type
     if [[ $? -eq 0 ]]; then
       use_singularity=true
+      log "container_type contains singularity:wrapper, so use_singularity=true"
     else
       use_singularity=true  # always for testing
       #PAL use_singularity=false
@@ -540,20 +544,20 @@ function main() {
 
     if [[ ${use_singularity} = true ]]; then
       # check if already in SINGULARITY environment
-      log 'SINGULARITY_INIT is not set'
-      echo "---- Check singularity details (development) ----"
+      log 'SINGULARITY_ENVIRONMENT is not set'
       check_singularity
       export ALRB_noGridMW=NO
       export SINGULARITYENV_PATH=${PATH}
       export SINGULARITYENV_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
-      #echo '   _____ _                   __           _ __        '
-      #echo '  / ___/(_)___  ____ ___  __/ /___ ______(_) /___  __ '
-      #echo '  \__ \/ / __ \/ __ `/ / / / / __ `/ ___/ / __/ / / / '
-      #echo ' ___/ / / / / / /_/ / /_/ / / /_/ / /  / / /_/ /_/ /  '
-      #echo '/____/_/_/ /_/\__, /\__,_/_/\__,_/_/  /_/\__/\__, /   '
-      #echo '             /____/                         /____/    '
+      echo '   _____ _                   __           _ __        '
+      echo '  / ___/(_)___  ____ ___  __/ /___ ______(_) /___  __ '
+      echo '  \__ \/ / __ \/ __ `/ / / / / __ `/ ___/ / __/ / / / '
+      echo ' ___/ / / / / / /_/ / /_/ / / /_/ / /  / / /_/ /_/ /  '
+      echo '/____/_/_/ /_/\__, /\__,_/_/\__,_/_/  /_/\__/\__, /   '
+      echo '             /____/                         /____/    '
       echo
-      cmd="singularity exec $sing_opts $SINGULARITY_IMAGE $0 $@"
+      cmd="$BINARY_PATH exec $sing_opts $SINGULARITY_IMAGE $0 $@"
+      cmd=$(sing_cmd)
       echo "cmd: $cmd"
       echo
       log '==== singularity stdout BEGIN ===='
@@ -572,7 +576,7 @@ function main() {
     fi
     echo
   else
-    log 'SINGULARITY_INIT is set, run basic setup'
+    log 'SINGULARITY_ENVIRONMENT is set, run basic setup'
     export ALRB_noGridMW=NO
   fi
 
@@ -586,7 +590,7 @@ function main() {
     echo "/proc/version:" $(cat /proc/version)
   fi
   echo "lsb_release:" $(lsb_release -d 2>/dev/null)
-  echo "SINGULARITY_INIT:" ${SINGULARITY_INIT}
+  echo "SINGULARITY_ENVIRONMENT:" ${SINGULARITY_ENVIRONMENT}
   
   myargs=$@
   echo "wrapper call: $0 $myargs"
@@ -612,6 +616,7 @@ function main() {
     log "Copying job description to working dir"
     cp pandaJobData.out $workdir/pandaJobData.out
   fi
+  echo PAL wd: ${workdir}
   log "cd ${workdir}"
   cd ${workdir}
   if [[ ${harvesterflag} == 'true' ]]; then
@@ -633,8 +638,6 @@ function main() {
   fi
   echo
   
-  echo "---- Initial environment ----"
-  printenv | sort
   if [[ ${containerflag} == 'true' ]]; then
     log 'Skipping defining VO_ATLAS_SW_DIR due to --container flag'
     log 'Skipping defining ATLAS_LOCAL_ROOT_BASE due to --container flag'
