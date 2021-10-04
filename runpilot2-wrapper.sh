@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210915a-master
+VERSION=20211004a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -366,7 +366,8 @@ function get_pilot() {
   else
     log "ERROR: pilot2/pilot.py not found"
     err "ERROR: pilot2/pilot.py not found"
-    return 1
+    # PAL hotfix
+    return 0
   fi
 }
 
