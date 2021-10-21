@@ -465,7 +465,7 @@ function main() {
   trap 'trap_handler SIGUSR2' SIGUSR2
   trap 'trap_handler SIGBUS' SIGBUS
 
-  echo "This is ATLAS pilot2 wrapper version: $VERSION"
+  echo "This is ATLAS pilot wrapper version: $VERSION"
   echo "Please send development requests to p.love@lancaster.ac.uk"
 
   log "==== wrapper stdout BEGIN ===="
