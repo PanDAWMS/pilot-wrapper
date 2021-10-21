@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210810a-next
+VERSION=20211021a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -285,16 +285,16 @@ function pilot_cmd() {
   # test if not harvester job 
   if [[ ${harvesterflag} == 'false' ]] ; then  
     if [[ -n ${pilotversion} ]]; then
-      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
     else
-      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
     fi
   else
     # check to see if we are running OneToMany Harvester workflow (aka Jumbo Jobs)
     if [[ ${workflowarg} == 'OneToMany' ]] && [ -z ${HARVESTER_PILOT_WORKDIR+x} ] ; then
-      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} -a ${HARVESTER_PILOT_WORKDIR} --pilot-user=ATLAS ${pilotargs}"
+      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} -a ${HARVESTER_PILOT_WORKDIR} --pilot-user=ATLAS ${pilotargs}"
     else
-      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
     fi
   fi
   echo ${cmd}
@@ -323,6 +323,7 @@ function get_piloturl() {
     pilottar=${pilotdir}/pilot2.tar.gz
   elif [[ ${version} == '3' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
+    pilotbase='pilot3'
   else
     pilottar=${pilotdir}/pilot2-${version}.tar.gz
   fi
@@ -359,14 +360,15 @@ function get_pilot() {
     fi
   fi
 
-  if [[ -f pilot2/pilot.py ]]; then
-    log "File pilot2/pilot.py exists OK"
-    log "pilot2/PILOTVERSION: $(cat pilot2/PILOTVERSION)"
+  if [[ -f ${pilotbase}/pilot.py ]]; then
+    log "File ${pilotbase}/pilot.py exists OK"
+    log "${pilotbase}/PILOTVERSION: $(cat ${pilotbase}/PILOTVERSION)"
     return 0
   else
-    log "ERROR: pilot2/pilot.py not found"
-    err "ERROR: pilot2/pilot.py not found"
-    return 1
+    log "ERROR: ${pilotbase}/pilot.py not found"
+    err "ERROR: ${pilotbase}/pilot.py not found"
+    #PAL hotfix 4/10
+    return 0
   fi
 }
 
@@ -519,6 +521,11 @@ function main() {
   url=$(get_piloturl ${pilotversion})
   log "Using piloturl: ${url}"
 
+  if grep -q "pilot3" <<< "$url"; then
+    log "Pilot URL contains pilot3"
+    pilotbase='pilot3'
+  fi
+
   get_pilot ${url}
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code"
@@ -602,6 +609,14 @@ function main() {
   echo "---- JOB Environment ----"
   printenv | sort
   echo
+  if [[ -n ${ATLAS_LOCAL_AREA} ]]; then
+    log "Content of $ATLAS_LOCAL_AREA/setup.sh.local"
+    cat $ATLAS_LOCAL_AREA/setup.sh.local
+    echo
+  else
+    log "Empty: \$ATLAS_LOCAL_AREA"
+    echo
+  fi
 
   echo "---- Build pilot cmd ----"
   cmd=$(pilot_cmd)
@@ -621,13 +636,13 @@ function main() {
   log "==== wrapper stdout RESUME ===="
   log "Pilot exit status: $pilotrc"
   
-  if [[ -f ${workdir}/pilot2/pandaIDs.out ]]; then
+  if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
     # max 30 pandaids
-    pandaids=$(cat ${workdir}/pilot2/pandaIDs.out | xargs echo | cut -d' ' -f-30)
+    pandaids=$(cat ${workdir}/${pilotbase}/pandaIDs.out | xargs echo | cut -d' ' -f-30)
     log "pandaids: ${pandaids}"
   else
-    log "File not found: ${workdir}/pilot2/pandaIDs.out, no payload"
-    err "File not found: ${workdir}/pilot2/pandaIDs.out, no payload"
+    log "File not found: ${workdir}/${pilotbase}/pandaIDs.out, no payload"
+    err "File not found: ${workdir}/${pilotbase}/pandaIDs.out, no payload"
     pandaids=''
   fi
 
@@ -683,6 +698,7 @@ localpyflag='false'
 tflag='false'
 piloturl=''
 pilotversion='latest'
+pilotbase='pilot2'
 pythonversion='2'
 mute='false'
 myargs="$@"
