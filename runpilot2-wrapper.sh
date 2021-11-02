@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20210929c-sing
+VERSION=20211102b-sing
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -37,15 +37,15 @@ function get_workdir {
     fi
   fi
 
-  if [[ -n ${OSG_WN_TMP} ]]; then
+  if [[ -n "${OSG_WN_TMP}" ]]; then
     templ=${OSG_WN_TMP}/atlas_XXXXXXXX
-  elif [[ -n ${TMPDIR} ]]; then
+  elif [[ -n "${TMPDIR}" ]]; then
     templ=${TMPDIR}/atlas_XXXXXXXX
   else
     templ=$(pwd)/atlas_XXXXXXXX
   fi
-  temp=$(mktemp -d $templ)
-  echo ${temp}
+  tempd=$(mktemp -d $templ)
+  echo ${tempd}
 }
 
 function check_python2() {
@@ -159,7 +159,7 @@ function check_proxy() {
 function check_cvmfs() {
   export VO_ATLAS_SW_DIR=${VO_ATLAS_SW_DIR:-/cvmfs/atlas.cern.ch/repo/sw}
   if [[ -d ${VO_ATLAS_SW_DIR} ]]; then
-    log "Found atlas software repository"
+    log "Found atlas software repository: ${VO_ATLAS_SW_DIR}"
   else
     log "ERROR: atlas software repository NOT found: ${VO_ATLAS_SW_DIR}"
     log "FATAL: Failed to find atlas software repository"
@@ -456,33 +456,28 @@ function sortie() {
   exit $ec
 }
 
+function get_cricopts() {
+  container_opts=$(curl --silent $cricurl | grep container_options | grep -v null)
+  if [[ $? -eq 0 ]]; then
+    cricopts=$(echo $container_opts | awk -F"\"" '{print $4}')
+    echo ${cricopts}
+    return 0
+  else
+    return 1
+  fi
+}
+
 function check_singularity() {
   SINGULARITY_IMAGE="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
   BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/x86_64-el7/current/bin/singularity"
   IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
-  SINGULARITY_OPTIONS="-B /cvmfs -B /scratch"
+  SINGULARITY_OPTIONS="$(get_cricopts) -B /cvmfs -B $PWD"
   out=$(${BINARY_PATH} --version 2>/dev/null)
   if [[ $? -eq 0 ]]; then
     log "Singularity binary found, version $out"
     log "Singularity binary path: ${BINARY_PATH}"
   else
     log "Singularity binary not found"
-  fi
-}
-
-function get_singopts() {
-  if [[ -f queuedata.json ]]; then
-    container_opts=$(cat queuedata.json | grep container_options | grep -v null)
-  else
-    container_opts=$(curl --silent $cricurl | grep container_options | grep -v null)
-  fi
-  if [[ $? -eq 0 ]]; then
-    singopts=$(echo $container_opts | awk -F"\"" '{print $4}')
-    echo ${singopts}
-    return 0
-  else
-    echo ''
-    return 0
   fi
 }
 
@@ -517,29 +512,36 @@ function main() {
 
   if [[ -z ${SINGULARITY_ENVIRONMENT} ]]; then
     # SINGULARITY_ENVIRONMENT not set
-    echo "This is ATLAS pilot2 wrapper version: $VERSION"
+    echo "This is ATLAS pilot wrapper version: $VERSION"
     echo "Please send development requests to p.love@lancaster.ac.uk"
     echo
     log "==== wrapper stdout BEGIN ===="
     err "==== wrapper stderr BEGIN ===="
     UUID=$(cat /proc/sys/kernel/random/uuid)
     apfmon_running
+    log "${cricurl}"
     echo
     echo "---- Initial environment ----"
     printenv | sort
     echo
+    echo "---- PWD content ----"
+    ls -la
+    echo
 
     echo "---- Check singularity details (development) ----"
-    sing_opts=$(get_singopts)
-    echo $sing_opts
+    cric_opts=$(get_cricopts)
+    if [[ $? -eq 0 ]]; then
+      log "CRIC container_options: $cric_opts"
+    else
+      log "WARNING: failed to get CRIC container_options"
+    fi
 
     check_type
     if [[ $? -eq 0 ]]; then
       use_singularity=true
       log "container_type contains singularity:wrapper, so use_singularity=true"
     else
-      use_singularity=true  # always for testing
-      #PAL use_singularity=false
+      use_singularity=false
     fi
 
     if [[ ${use_singularity} = true ]]; then
@@ -556,7 +558,7 @@ function main() {
       echo '/____/_/_/ /_/\__, /\__,_/_/\__,_/_/  /_/\__/\__, /   '
       echo '             /____/                         /____/    '
       echo
-      cmd="$BINARY_PATH exec $sing_opts $SINGULARITY_IMAGE $0 $@"
+      cmd="$BINARY_PATH exec -B $PWD $sing_opts $SINGULARITY_IMAGE $0 $@"
       cmd=$(sing_cmd)
       echo "cmd: $cmd"
       echo
@@ -586,6 +588,7 @@ function main() {
   echo "whoami:" $(whoami)
   echo "id:" $(id)
   echo "getopt:" $(getopt -V 2>/dev/null)
+  echo "jq:" $(jq --version 2>/dev/null)
   if [[ -r /proc/version ]]; then
     echo "/proc/version:" $(cat /proc/version)
   fi
@@ -611,12 +614,13 @@ function main() {
 
   
   echo "---- Enter workdir ----"
+  echo "PAL TMPDIR: $TMPDIR"
   workdir=$(get_workdir)
+  log "Workdir: ${workdir}"
   if [[ -f pandaJobData.out ]]; then
     log "Copying job description to working dir"
     cp pandaJobData.out $workdir/pandaJobData.out
   fi
-  echo PAL wd: ${workdir}
   log "cd ${workdir}"
   cd ${workdir}
   if [[ ${harvesterflag} == 'true' ]]; then
@@ -895,7 +899,6 @@ if [ -z "${qarg}" ]; then usage; exit 1; fi
 pilotargs="$@"
 
 cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
-fabricmon="http://fabricmon.cern.ch/api"
 fabricmon="http://apfmon.lancs.ac.uk/api"
 if [ -z ${APFMON} ]; then
   APFMON=${fabricmon}
