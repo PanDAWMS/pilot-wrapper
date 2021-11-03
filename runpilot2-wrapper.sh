@@ -285,16 +285,16 @@ function pilot_cmd() {
   # test if not harvester job 
   if [[ ${harvesterflag} == 'false' ]] ; then  
     if [[ -n ${pilotversion} ]]; then
-      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
     else
-      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
     fi
   else
     # check to see if we are running OneToMany Harvester workflow (aka Jumbo Jobs)
     if [[ ${workflowarg} == 'OneToMany' ]] && [ -z ${HARVESTER_PILOT_WORKDIR+x} ] ; then
-      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} -a ${HARVESTER_PILOT_WORKDIR} --pilot-user=ATLAS ${pilotargs}"
+      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} -a ${HARVESTER_PILOT_WORKDIR} --pilot-user=ATLAS ${pilotargs}"
     else
-      cmd="${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
     fi
   fi
   echo ${cmd}
