@@ -719,6 +719,14 @@ function main() {
   echo "---- JOB Environment ----"
   printenv | sort
   echo
+  if [[ -n ${ATLAS_LOCAL_AREA} ]]; then
+    log "Content of $ATLAS_LOCAL_AREA/setup.sh.local"
+    cat $ATLAS_LOCAL_AREA/setup.sh.local
+    echo
+  else
+    log "Empty: \$ATLAS_LOCAL_AREA"
+    echo
+  fi
 
   echo "---- Build pilot cmd ----"
   cmd=$(pilot_cmd)
