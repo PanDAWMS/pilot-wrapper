@@ -633,6 +633,11 @@ function main() {
   piloturl=$(get_piloturl ${pilotversion})
   log "Using piloturl: ${piloturl}"
 
+  if grep -q "pilot3" <<< "$url"; then
+    log "Pilot URL contains pilot3"
+    pilotbase='pilot3'
+  fi
+
   get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code"
