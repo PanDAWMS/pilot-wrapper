@@ -366,13 +366,13 @@ function get_pilot() {
     fi
   fi
 
-  if [[ -f pilot2/pilot.py ]]; then
-    log "File pilot2/pilot.py exists OK"
-    log "pilot2/PILOTVERSION: $(cat pilot2/PILOTVERSION)"
+  if [[ -f ${pilotbase}/pilot.py ]]; then
+    log "File ${pilotbase}/pilot.py exists OK"
+    log "${pilotbase}/PILOTVERSION: $(cat ${pilotbase}/PILOTVERSION)"
     return 0
   else
-    log "ERROR: pilot2/pilot.py not found"
-    err "ERROR: pilot2/pilot.py not found"
+    log "ERROR: ${pilotbase}/pilot.py not found"
+    err "ERROR: ${pilotbase}/pilot.py not found"
     return 1
   fi
 }
