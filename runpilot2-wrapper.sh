@@ -330,6 +330,7 @@ function get_piloturl() {
     pilottar=${pilotdir}/pilot2.tar.gz
   elif [[ ${version} == '3' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
+    pilotbase='pilot3'
   else
     pilottar=${pilotdir}/pilot2-${version}.tar.gz
   fi
