@@ -746,13 +746,13 @@ function main() {
   log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
   
-  if [[ -f ${workdir}/pilot2/pandaIDs.out ]]; then
+  if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
     # max 30 pandaids
-    pandaids=$(cat ${workdir}/pilot2/pandaIDs.out | xargs echo | cut -d' ' -f-30)
+    pandaids=$(cat ${workdir}/${pilotbase}/pandaIDs.out | xargs echo | cut -d' ' -f-30)
     log "pandaids: ${pandaids}"
   else
-    log "File not found: ${workdir}/pilot2/pandaIDs.out, no payload"
-    err "File not found: ${workdir}/pilot2/pandaIDs.out, no payload"
+    log "File not found: ${workdir}/${pilotbase}/pandaIDs.out, no payload"
+    err "File not found: ${workdir}/${pilotbase}/pandaIDs.out, no payload"
     pandaids=''
   fi
 
