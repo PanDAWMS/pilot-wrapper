@@ -634,7 +634,7 @@ function main() {
   piloturl=$(get_piloturl ${pilotversion})
   log "Using piloturl: ${piloturl}"
 
-  if grep -q "pilot3" <<< "$url"; then
+  if grep -q "pilot3" <<< "$piloturl"; then
     log "Pilot URL contains pilot3"
     pilotbase='pilot3'
   fi
