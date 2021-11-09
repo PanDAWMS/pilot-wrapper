@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20211108a-next
+VERSION=20211108b-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -468,6 +468,19 @@ function get_cricopts() {
   fi
 }
 
+function get_catchall() {
+  local result
+  local content
+  result=$(curl --silent $cricurl | grep catchall | grep -v null)
+  if [[ $? -eq 0 ]]; then
+    content=$(echo $result | awk -F"\"" '{print $4}')
+    echo ${content}
+    return 0
+  else
+    return 1
+  fi
+}
+
 function check_singularity() {
   SINGULARITY_IMAGE="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
   BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/x86_64-el7/current/bin/singularity"
@@ -695,6 +708,21 @@ function main() {
     setup_local
   fi
   echo
+
+  echo "---- Setup logstash ----"
+  result=$(get_catchall)
+  if [[ $? -eq 0 ]]; then
+    if grep -q "logging=logstash" <<< "$result"; then
+      log 'Logstash requested via CRIC catchall, running asetup logstash'
+      asetup logstash
+    else
+      log 'Logstash not requested in CRIC catchall'
+    fi
+  else
+    log 'No content found in CRIC catchall'
+  fi
+  echo
+
 
   if [[ ${harvesterflag} == 'true' ]]; then
     echo "---- Create symlinks to input data ----"
