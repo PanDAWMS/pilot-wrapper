@@ -4,16 +4,16 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20211005a-master
+VERSION=20211109g-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
-  echo $dt $@ >&2
+  echo "$dt $@" >&2
 }
 
 function log() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
-  echo $dt $@
+  echo "$dt $@"
 }
 
 function get_workdir {
@@ -37,15 +37,15 @@ function get_workdir {
     fi
   fi
 
-  if [[ -n ${OSG_WN_TMP} ]]; then
+  if [[ -n "${OSG_WN_TMP}" ]]; then
     templ=${OSG_WN_TMP}/atlas_XXXXXXXX
-  elif [[ -n ${TMPDIR} ]]; then
+  elif [[ -n "${TMPDIR}" ]]; then
     templ=${TMPDIR}/atlas_XXXXXXXX
   else
     templ=$(pwd)/atlas_XXXXXXXX
   fi
-  temp=$(mktemp -d $templ)
-  echo ${temp}
+  tempd=$(mktemp -d $templ)
+  echo ${tempd}
 }
 
 function check_python2() {
@@ -159,7 +159,7 @@ function check_proxy() {
 function check_cvmfs() {
   export VO_ATLAS_SW_DIR=${VO_ATLAS_SW_DIR:-/cvmfs/atlas.cern.ch/repo/sw}
   if [[ -d ${VO_ATLAS_SW_DIR} ]]; then
-    log "Found atlas software repository"
+    log "Found atlas software repository: ${VO_ATLAS_SW_DIR}"
   else
     log "ERROR: atlas software repository NOT found: ${VO_ATLAS_SW_DIR}"
     log "FATAL: Failed to find atlas software repository"
@@ -300,6 +300,13 @@ function pilot_cmd() {
   echo ${cmd}
 }
 
+function sing_cmd() {
+#  proxydir=$(dirname ${X509_USER_PROXY})
+#  cmd="$BINARY_PATH exec --bind /cvmfs,${proxydir} $IMAGE_PATH ${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
+  cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS $IMAGE_PATH $0 $myargs"
+  echo ${cmd}
+}
+
 function get_piloturl() {
 
   local version=$1
@@ -367,8 +374,7 @@ function get_pilot() {
   else
     log "ERROR: ${pilotbase}/pilot.py not found"
     err "ERROR: ${pilotbase}/pilot.py not found"
-    #PAL hotfix 4/10
-    return 0
+    return 1
   fi
 }
 
@@ -451,6 +457,59 @@ function sortie() {
   exit $ec
 }
 
+function get_cricopts() {
+  container_opts=$(curl --silent $cricurl | grep container_options | grep -v null)
+  if [[ $? -eq 0 ]]; then
+    cricopts=$(echo $container_opts | awk -F"\"" '{print $4}')
+    echo ${cricopts}
+    return 0
+  else
+    return 1
+  fi
+}
+
+function get_catchall() {
+  local result
+  local content
+  result=$(curl --silent $cricurl | grep catchall | grep -v null)
+  if [[ $? -eq 0 ]]; then
+    content=$(echo $result | awk -F"\"" '{print $4}')
+    echo ${content}
+    return 0
+  else
+    return 1
+  fi
+}
+
+function check_singularity() {
+  SINGULARITY_IMAGE="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
+  BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/x86_64-el7/current/bin/singularity"
+  IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
+  SINGULARITY_OPTIONS="$(get_cricopts) -B /cvmfs "
+  out=$(${BINARY_PATH} --version 2>/dev/null)
+  if [[ $? -eq 0 ]]; then
+    log "Singularity binary found, version $out"
+    log "Singularity binary path: ${BINARY_PATH}"
+  else
+    log "Singularity binary not found"
+  fi
+}
+
+function check_type() {
+  if [[ -f queuedata.json ]]; then
+    result=$(cat queuedata.json | grep container_type | grep 'singularity:wrapper')
+  else
+    result=$(curl --silent $cricurl | grep container_type | grep 'singularity:wrapper')
+  fi
+  if [[ $? -eq 0 ]]; then
+    log "CRIC container_type: singularity:wrapper found"
+    return 0
+  else
+    log "CRIC container_type: singularity:wrapper not found"
+    return 1
+  fi
+}
+
 
 function main() {
   #
@@ -465,14 +524,77 @@ function main() {
   trap 'trap_handler SIGUSR2' SIGUSR2
   trap 'trap_handler SIGBUS' SIGBUS
 
-  echo "This is ATLAS pilot wrapper version: $VERSION"
-  echo "Please send development requests to p.love@lancaster.ac.uk"
+  if [[ -z ${SINGULARITY_ENVIRONMENT} ]]; then
+    # SINGULARITY_ENVIRONMENT not set
+    echo "This is ATLAS pilot wrapper version: $VERSION"
+    echo "Please send development requests to p.love@lancaster.ac.uk"
+    echo
+    log "==== wrapper stdout BEGIN ===="
+    err "==== wrapper stderr BEGIN ===="
+    UUID=$(cat /proc/sys/kernel/random/uuid)
+    apfmon_running
+    log "${cricurl}"
+    echo
+    echo "---- Initial environment ----"
+    printenv | sort
+    echo
+    echo "---- PWD content ----"
+    ls -la
+    echo
 
-  log "==== wrapper stdout BEGIN ===="
-  err "==== wrapper stderr BEGIN ===="
-  UUID=$(cat /proc/sys/kernel/random/uuid)
-  apfmon_running
-  echo
+    echo "---- Check singularity details (development) ----"
+    cric_opts=$(get_cricopts)
+    if [[ $? -eq 0 ]]; then
+      log "CRIC container_options: $cric_opts"
+    else
+      log "WARNING: failed to get CRIC container_options"
+    fi
+
+    check_type
+    if [[ $? -eq 0 ]]; then
+      use_singularity=true
+      log "container_type contains singularity:wrapper, so use_singularity=true"
+    else
+      use_singularity=false
+    fi
+
+    if [[ ${use_singularity} = true ]]; then
+      # check if already in SINGULARITY environment
+      log 'SINGULARITY_ENVIRONMENT is not set'
+      check_singularity
+      export ALRB_noGridMW=NO
+      export SINGULARITYENV_PATH=${PATH}
+      export SINGULARITYENV_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+      echo '   _____ _                   __           _ __        '
+      echo '  / ___/(_)___  ____ ___  __/ /___ ______(_) /___  __ '
+      echo '  \__ \/ / __ \/ __ `/ / / / / __ `/ ___/ / __/ / / / '
+      echo ' ___/ / / / / / /_/ / /_/ / / /_/ / /  / / /_/ /_/ /  '
+      echo '/____/_/_/ /_/\__, /\__,_/_/\__,_/_/  /_/\__/\__, /   '
+      echo '             /____/                         /____/    '
+      echo
+      cmd="$BINARY_PATH exec -B $PWD $sing_opts $SINGULARITY_IMAGE $0 $@"
+      cmd=$(sing_cmd)
+      echo "cmd: $cmd"
+      echo
+      log '==== singularity stdout BEGIN ===='
+      err '==== singularity stderr BEGIN ===='
+      $cmd &
+      singpid=$!
+      wait $singpid
+      log "singularity return code: $?"
+      log '==== singularity stdout END ===='
+      err '==== singularity stderr END ===='
+      log "==== wrapper stdout END ===="
+      err "==== wrapper stderr END ===="
+      exit 0
+    else
+      log 'Will NOT use singularity, at least not from the wrapper'
+    fi
+    echo
+  else
+    log 'SINGULARITY_ENVIRONMENT is set, run basic setup'
+    export ALRB_noGridMW=NO
+  fi
 
   echo "---- Host details ----"
   echo "hostname:" $(hostname -f)
@@ -480,10 +602,12 @@ function main() {
   echo "whoami:" $(whoami)
   echo "id:" $(id)
   echo "getopt:" $(getopt -V 2>/dev/null)
+  echo "jq:" $(jq --version 2>/dev/null)
   if [[ -r /proc/version ]]; then
     echo "/proc/version:" $(cat /proc/version)
   fi
   echo "lsb_release:" $(lsb_release -d 2>/dev/null)
+  echo "SINGULARITY_ENVIRONMENT:" ${SINGULARITY_ENVIRONMENT}
   
   myargs=$@
   echo "wrapper call: $0 $myargs"
@@ -504,7 +628,13 @@ function main() {
 
   
   echo "---- Enter workdir ----"
+  echo "PAL TMPDIR: $TMPDIR"
+  echo "PAL ${TMPDIR}/atlas_XXXXXXXX"
+  echo "PAL mktemp: " $(mktemp -d ${TMPDIR}/atlas_XXXXXXXX)
+  mktemp -d ${TMPDIR}/atlas_XXXXXXXX
+  echo MKTEMP: $?
   workdir=$(get_workdir)
+  log "Workdir: ${workdir}"
   if [[ -f pandaJobData.out ]]; then
     log "Copying job description to working dir"
     cp pandaJobData.out $workdir/pandaJobData.out
@@ -518,15 +648,33 @@ function main() {
   echo
   
   echo "---- Retrieve pilot code ----"
-  url=$(get_piloturl ${pilotversion})
-  log "Using piloturl: ${url}"
+  piloturl=$(get_piloturl ${pilotversion})
+  log "Using piloturl: ${piloturl}"
 
-  if grep -q "pilot3" <<< "$url"; then
+  if grep -q "pilot3" <<< "$piloturl"; then
     log "Pilot URL contains pilot3"
     pilotbase='pilot3'
   fi
+  echo
 
-  get_pilot ${url}
+  echo "---- Logstash overrides (devel Paul) ----"
+  result=$(get_catchall)
+  if [[ $? -eq 0 ]]; then
+    if grep -q "logging=logstash" <<< "$result"; then
+      if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
+        log 'WARNING: overriding pilot version pilot3->pilot2 for Paul test'
+        pilotbase='pilot2'
+        piloturl='file:///cvmfs/atlas.cern.ch/repo/sw/PandaPilot/tar/pilot2/pilot2.tar.gz'
+      fi
+    else
+      log 'Logstash not requested in CRIC catchall'
+    fi
+  else
+    log 'No content found in CRIC catchall'
+  fi
+  echo
+
+  get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code"
     err "FATAL: failed to get pilot code"
@@ -535,8 +683,6 @@ function main() {
   fi
   echo
   
-  echo "---- Initial environment ----"
-  printenv | sort
   if [[ ${containerflag} == 'true' ]]; then
     log 'Skipping defining VO_ATLAS_SW_DIR due to --container flag'
     log 'Skipping defining ATLAS_LOCAL_ROOT_BASE due to --container flag'
@@ -585,6 +731,24 @@ function main() {
   fi
   echo
 
+  echo "---- Setup logstash ----"
+  result=$(get_catchall)
+  if [[ $? -eq 0 ]]; then
+    if grep -q "logging=logstash" <<< "$result"; then
+      log 'Logstash requested via CRIC catchall, running lsetup logstash'
+      lsetup logstash
+      if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
+        log 'Overriding pilot version pilot3->pilot2 for Paul test'
+      fi
+    else
+      log 'Logstash not requested in CRIC catchall'
+    fi
+  else
+    log 'No content found in CRIC catchall'
+  fi
+  echo
+
+
   if [[ ${harvesterflag} == 'true' ]]; then
     echo "---- Create symlinks to input data ----"
     log 'Create to symlinks to input data from harvester info'
@@ -620,7 +784,7 @@ function main() {
 
   echo "---- Build pilot cmd ----"
   cmd=$(pilot_cmd)
-  echo cmd: ${cmd}
+  echo $cmd
   echo
 
   echo "---- Ready to run pilot ----"
@@ -629,11 +793,11 @@ function main() {
   log "==== pilot stdout BEGIN ===="
   $cmd &
   pilotpid=$!
-  log "pilotpid: $pilotpid"
   wait $pilotpid
   pilotrc=$?
   log "==== pilot stdout END ===="
   log "==== wrapper stdout RESUME ===="
+  log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
   
   if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
@@ -802,7 +966,7 @@ if [ -z "${qarg}" ]; then usage; exit 1; fi
 
 pilotargs="$@"
 
-fabricmon="http://fabricmon.cern.ch/api"
+cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
 fabricmon="http://apfmon.lancs.ac.uk/api"
 if [ -z ${APFMON} ]; then
   APFMON=${fabricmon}
