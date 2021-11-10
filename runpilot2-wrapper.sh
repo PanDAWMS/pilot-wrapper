@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20211109a-next
+VERSION=20211109g-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -485,7 +485,7 @@ function check_singularity() {
   SINGULARITY_IMAGE="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
   BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/x86_64-el7/current/bin/singularity"
   IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
-  SINGULARITY_OPTIONS="$(get_cricopts) -B /cvmfs -B $PWD"
+  SINGULARITY_OPTIONS="$(get_cricopts) -B /cvmfs "
   out=$(${BINARY_PATH} --version 2>/dev/null)
   if [[ $? -eq 0 ]]; then
     log "Singularity binary found, version $out"
@@ -629,6 +629,10 @@ function main() {
   
   echo "---- Enter workdir ----"
   echo "PAL TMPDIR: $TMPDIR"
+  echo "PAL ${TMPDIR}/atlas_XXXXXXXX"
+  echo "PAL mktemp: " $(mktemp -d ${TMPDIR}/atlas_XXXXXXXX)
+  mktemp -d ${TMPDIR}/atlas_XXXXXXXX
+  echo MKTEMP: $?
   workdir=$(get_workdir)
   log "Workdir: ${workdir}"
   if [[ -f pandaJobData.out ]]; then
@@ -651,6 +655,24 @@ function main() {
     log "Pilot URL contains pilot3"
     pilotbase='pilot3'
   fi
+  echo
+
+  echo "---- Logstash overrides (devel Paul) ----"
+  result=$(get_catchall)
+  if [[ $? -eq 0 ]]; then
+    if grep -q "logging=logstash" <<< "$result"; then
+      if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
+        log 'WARNING: overriding pilot version pilot3->pilot2 for Paul test'
+        pilotbase='pilot2'
+        piloturl='file:///cvmfs/atlas.cern.ch/repo/sw/PandaPilot/tar/pilot2/pilot2.tar.gz'
+      fi
+    else
+      log 'Logstash not requested in CRIC catchall'
+    fi
+  else
+    log 'No content found in CRIC catchall'
+  fi
+  echo
 
   get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
@@ -713,8 +735,11 @@ function main() {
   result=$(get_catchall)
   if [[ $? -eq 0 ]]; then
     if grep -q "logging=logstash" <<< "$result"; then
-      log 'Logstash requested via CRIC catchall, running asetup logstash'
-      asetup logstash
+      log 'Logstash requested via CRIC catchall, running lsetup logstash'
+      lsetup logstash
+      if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
+        log 'Overriding pilot version pilot3->pilot2 for Paul test'
+      fi
     else
       log 'Logstash not requested in CRIC catchall'
     fi
