@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20211110a-master
+VERSION=20211129a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -347,6 +347,7 @@ function get_pilot() {
 
   if [[ ${url} == 'local' ]]; then
     log "piloturl=local so download not needed"
+    
     if [[ -f pilot2.tar.gz ]]; then
       log "local tarball pilot2.tar.gz exists OK"
       tar -xzf pilot2.tar.gz
@@ -355,8 +356,16 @@ function get_pilot() {
         err "ERROR: pilot extraction failed for pilot2.tar.gz"
         return 1
       fi
+    elif [[ -f pilot3.tar.gz ]]; then
+      log "local tarball pilot3.tar.gz exists OK"
+      tar -xzf pilot3.tar.gz
+      if [[ $? -ne 0 ]]; then
+        log "ERROR: pilot extraction failed for pilot3.tar.gz"
+        err "ERROR: pilot extraction failed for pilot3.tar.gz"
+        return 1
+      fi
     else
-      log "local pilot2.tar.gz not found so assuming already extracted"
+      log "local pilot[23].tar.gz not found so assuming already extracted"
     fi
   else
     curl --connect-timeout 30 --max-time 180 -sSL ${url} | tar -xzf -
@@ -653,6 +662,11 @@ function main() {
 
   if grep -q "pilot3" <<< "$piloturl"; then
     log "Pilot URL contains pilot3"
+    pilotbase='pilot3'
+  fi
+
+  if [[ ${pilotversion} == '3' ]]; then
+    log "Setting base to pilot3 since cmd line has pilotversion=3"
     pilotbase='pilot3'
   fi
   echo
