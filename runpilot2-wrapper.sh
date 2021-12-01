@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20211129a-next
+VERSION=20211201a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -307,8 +307,17 @@ function sing_cmd() {
   echo ${cmd}
 }
 
-function get_piloturl() {
+function sing_env() {
+  export SINGULARITYENV_PATH=${PATH}
+  export SINGULARITYENV_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+  export SINGULARITYENV_X509_USER_PROXY=${X509_USER_PROXY}
+  export SINGULARITYENV_ATLAS_LOCAL_AREA=${ATLAS_LOCAL_AREA}
+  export SINGULARITYENV_TMPDIR=${TMPDIR}
+  export SINGULARITYENV_RECOVERY_DIR=${RECOVERY_DIR}
+  printenv | sort
+}
 
+function get_piloturl() {
   local version=$1
   local pilotdir=file:///cvmfs/atlas.cern.ch/repo/sw/PandaPilot/tar
 
@@ -494,7 +503,7 @@ function check_singularity() {
   SINGULARITY_IMAGE="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
   BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/x86_64-el7/current/bin/singularity"
   IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
-  SINGULARITY_OPTIONS="$(get_cricopts) -B /cvmfs "
+  SINGULARITY_OPTIONS="$(get_cricopts) -B /cvmfs -B $PWD --cleanenv"
   out=$(${BINARY_PATH} --version 2>/dev/null)
   if [[ $? -eq 0 ]]; then
     log "Singularity binary found, version $out"
@@ -543,6 +552,9 @@ function main() {
     UUID=$(cat /proc/sys/kernel/random/uuid)
     apfmon_running
     log "${cricurl}"
+    echo PAL 
+    pwd
+    ls -l
     echo
     echo "---- Initial environment ----"
     printenv | sort
@@ -570,10 +582,10 @@ function main() {
     if [[ ${use_singularity} = true ]]; then
       # check if already in SINGULARITY environment
       log 'SINGULARITY_ENVIRONMENT is not set'
+      sing_env
+      log 'Setting SINGULARITY_env'
       check_singularity
       export ALRB_noGridMW=NO
-      export SINGULARITYENV_PATH=${PATH}
-      export SINGULARITYENV_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
       echo '   _____ _                   __           _ __        '
       echo '  / ___/(_)___  ____ ___  __/ /___ ______(_) /___  __ '
       echo '  \__ \/ / __ \/ __ `/ / / / / __ `/ ___/ / __/ / / / '
@@ -603,6 +615,7 @@ function main() {
   else
     log 'SINGULARITY_ENVIRONMENT is set, run basic setup'
     export ALRB_noGridMW=NO
+    df -h
   fi
 
   echo "---- Host details ----"
