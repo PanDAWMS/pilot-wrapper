@@ -552,14 +552,12 @@ function main() {
     UUID=$(cat /proc/sys/kernel/random/uuid)
     apfmon_running
     log "${cricurl}"
-    echo PAL 
-    pwd
-    ls -l
     echo
     echo "---- Initial environment ----"
     printenv | sort
     echo
     echo "---- PWD content ----"
+    pwd
     ls -la
     echo
 
