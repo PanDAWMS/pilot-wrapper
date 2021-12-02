@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20211201a-next
+VERSION=20211202a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -301,20 +301,21 @@ function pilot_cmd() {
 }
 
 function sing_cmd() {
-#  proxydir=$(dirname ${X509_USER_PROXY})
-#  cmd="$BINARY_PATH exec --bind /cvmfs,${proxydir} $IMAGE_PATH ${pybin} pilot2/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} --pilot-user=ATLAS ${pilotargs}"
   cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS $IMAGE_PATH $0 $myargs"
   echo ${cmd}
 }
 
 function sing_env() {
-  export SINGULARITYENV_PATH=${PATH}
-  export SINGULARITYENV_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
   export SINGULARITYENV_X509_USER_PROXY=${X509_USER_PROXY}
-  export SINGULARITYENV_ATLAS_LOCAL_AREA=${ATLAS_LOCAL_AREA}
-  export SINGULARITYENV_TMPDIR=${TMPDIR}
-  export SINGULARITYENV_RECOVERY_DIR=${RECOVERY_DIR}
-  printenv | sort
+  if [[ -n "${ATLAS_LOCAL_AREA}" ]]; then
+    export SINGULARITYENV_ATLAS_LOCAL_AREA=${ATLAS_LOCAL_AREA}
+  fi
+  if [[ -n "${TMPDIR}" ]]; then
+    export SINGULARITYENV_TMPDIR=${TMPDIR}
+  fi
+  if [[ -n "${RECOVERY_DIR}" ]]; then
+    export SINGULARITYENV_RECOVERY_DIR=${RECOVERY_DIR}
+  fi
 }
 
 function get_piloturl() {
@@ -501,8 +502,8 @@ function get_catchall() {
 
 function check_singularity() {
   SINGULARITY_IMAGE="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
-  BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/x86_64-el7/current/bin/singularity"
-  IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
+  BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/`uname -m`-el7/current/bin/singularity"
+  IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-centos7"
   SINGULARITY_OPTIONS="$(get_cricopts) -B /cvmfs -B $PWD --cleanenv"
   out=$(${BINARY_PATH} --version 2>/dev/null)
   if [[ $? -eq 0 ]]; then
