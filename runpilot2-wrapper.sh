@@ -501,7 +501,6 @@ function get_catchall() {
 }
 
 function check_singularity() {
-  SINGULARITY_IMAGE="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/x86_64-centos7"
   BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/`uname -m`-el7/current/bin/singularity"
   IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-centos7"
   SINGULARITY_OPTIONS="$(get_cricopts) -B /cvmfs -B $PWD --cleanenv"
@@ -592,7 +591,6 @@ function main() {
       echo '/____/_/_/ /_/\__, /\__,_/_/\__,_/_/  /_/\__/\__, /   '
       echo '             /____/                         /____/    '
       echo
-      cmd="$BINARY_PATH exec -B $PWD $sing_opts $SINGULARITY_IMAGE $0 $@"
       cmd=$(sing_cmd)
       echo "cmd: $cmd"
       echo
