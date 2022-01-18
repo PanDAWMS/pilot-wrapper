@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20211203a-next
+VERSION=20220118a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -200,15 +200,6 @@ function setup_alrb() {
     log "Will use ALRB MW because ALRB_noGridMW=NO (default)"
   fi
 
-  if [ -d ${ATLAS_LOCAL_ROOT_BASE} ]; then
-    log 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet'
-    source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet
-  else
-    log "FATAL: ALRB ATLAS_LOCAL_ROOT_BASE not found: ${ATLAS_LOCAL_ROOT_BASE}, exiting"
-    err "FATAL: ALRB ATLAS_LOCAL_ROOT_BASE not found: ${ATLAS_LOCAL_ROOT_BASE}, exiting"
-    apfmon_fault 1
-    sortie 1
-  fi
 }
 
 function setup_local() {
