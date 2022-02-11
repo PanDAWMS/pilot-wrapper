@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220208a-next
+VERSION=20220209a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -801,9 +801,9 @@ function main() {
   result=$(get_environ)
   if [[ $? -eq 0 ]]; then
     if [[ -z ${result} ]]; then
-      log "<empty>"
+      log 'CRIC environ field: <empty>'
     else
-      log 'CRIC environ content (fragile, if problem seen check CRIC PQ.environ)'
+      log 'CRIC environ content'
       log "export ${result}"
       export ${result}
     fi
