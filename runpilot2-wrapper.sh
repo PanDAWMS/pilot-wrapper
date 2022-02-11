@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220118a-master
+VERSION=20220211a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -491,6 +491,19 @@ function get_catchall() {
   fi
 }
 
+function get_environ() {
+  local result
+  local content
+  result=$(curl --silent $cricurl | grep environ | grep -v null)
+  if [[ $? -eq 0 ]]; then
+    content=$(echo $result | awk -F"\"" '{print $4}')
+    echo ${content}
+    return 0
+  else
+    return 1
+  fi
+}
+
 function check_singularity() {
   BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/`uname -m`-el7/current/bin/singularity"
   IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-centos7"
@@ -783,9 +796,23 @@ function main() {
   else
     check_proxy
   fi
-  echo
   
-  echo "---- JOB Environment ----"
+  echo "--- Bespoke environment from CRIC ---"
+  result=$(get_environ)
+  if [[ $? -eq 0 ]]; then
+    if [[ -z ${result} ]]; then
+      log 'CRIC environ field: <empty>'
+    else
+      log 'CRIC environ content'
+      log "export ${result}"
+      export ${result}
+    fi
+  else
+    log 'No content found in CRIC environ'
+  fi
+  echo
+
+  echo "---- Job Environment ----"
   printenv | sort
   echo
   if [[ -n ${ATLAS_LOCAL_AREA} ]]; then
