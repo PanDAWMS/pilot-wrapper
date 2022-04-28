@@ -307,6 +307,9 @@ function sing_env() {
   if [[ -n "${RECOVERY_DIR}" ]]; then
     export SINGULARITYENV_RECOVERY_DIR=${RECOVERY_DIR}
   fi
+  if [[ -n "${GTAG}" ]]; then
+    export SINGULARITYENV_GTAG=${GTAG}
+  fi
 }
 
 function get_piloturl() {
