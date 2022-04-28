@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220211a-master
+VERSION=20220428a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -743,6 +743,21 @@ function main() {
   fi
   echo
 
+  echo "--- Bespoke environment from CRIC ---"
+  result=$(get_environ)
+  if [[ $? -eq 0 ]]; then
+    if [[ -z ${result} ]]; then
+      log 'CRIC environ field: <empty>'
+    else
+      log 'CRIC environ content'
+      log "export ${result}"
+      export ${result}
+    fi
+  else
+    log 'No content found in CRIC environ'
+  fi
+  echo
+
   echo "---- Setup ALRB ----"
   if [[ ${containerflag} == 'true' ]]; then
     log 'Skipping Setup ALRB due to --container flag'
@@ -797,21 +812,6 @@ function main() {
     check_proxy
   fi
   
-  echo "--- Bespoke environment from CRIC ---"
-  result=$(get_environ)
-  if [[ $? -eq 0 ]]; then
-    if [[ -z ${result} ]]; then
-      log 'CRIC environ field: <empty>'
-    else
-      log 'CRIC environ content'
-      log "export ${result}"
-      export ${result}
-    fi
-  else
-    log 'No content found in CRIC environ'
-  fi
-  echo
-
   echo "---- Job Environment ----"
   printenv | sort
   echo
