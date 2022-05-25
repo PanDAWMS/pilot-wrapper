@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-# pilot2 wrapper used at CERN central pilot factories
+# pilot wrapper used at CERN central pilot factories
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220427a-next
+VERSION=20220525a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -324,16 +324,22 @@ function get_piloturl() {
     apfmon 1
     sortie 1
   elif [[ ${version} == '2' ]]; then
-    pilottar=${pilotdir}/pilot2.tar.gz
+    log "FATAL: pilot version 2 requested, not supported by this wrapper"
+    err "FATAL: pilot version 2 requested, not supported by this wrapper"
+    apfmon 1
+    sortie 1
   elif [[ ${version} == 'latest' ]]; then
-    pilottar=${pilotdir}/pilot2.tar.gz
+    pilottar=${pilotdir}/pilot3.tar.gz
+    pilotbase='pilot3'
   elif [[ ${version} == 'current' ]]; then
-    pilottar=${pilotdir}/pilot2.tar.gz
+    pilottar=${pilotdir}/pilot3.tar.gz
+    pilotbase='pilot3'
   elif [[ ${version} == '3' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
     pilotbase='pilot3'
   else
-    pilottar=${pilotdir}/pilot2-${version}.tar.gz
+    pilottar=${pilotdir}/pilot3-${version}.tar.gz
+    pilotbase='pilot3'
   fi
   echo ${pilottar}
 }
@@ -342,6 +348,7 @@ function get_pilot() {
 
   local url=$1
 
+  # remove pending chk from Lincoln
   if [[ ${harvesterflag} == 'true' ]] && [[ ${workflowarg} == 'OneToMany' ]]; then
     cp -v ${HARVESTER_WORK_DIR}/pilot2.tar.gz .
   fi
@@ -351,12 +358,9 @@ function get_pilot() {
     
     if [[ -f pilot2.tar.gz ]]; then
       log "local tarball pilot2.tar.gz exists OK"
-      tar -xzf pilot2.tar.gz
-      if [[ $? -ne 0 ]]; then
-        log "ERROR: pilot extraction failed for pilot2.tar.gz"
-        err "ERROR: pilot extraction failed for pilot2.tar.gz"
-        return 1
-      fi
+      log "FATAL: pilot version 2 requested, not supported by this wrapper"
+      err "FATAL: pilot version 2 requested, not supported by this wrapper"
+      return 1
     elif [[ -f pilot3.tar.gz ]]; then
       log "local tarball pilot3.tar.gz exists OK"
       tar -xzf pilot3.tar.gz
@@ -651,11 +655,6 @@ function main() {
 
   
   echo "---- Enter workdir ----"
-  echo "PAL TMPDIR: $TMPDIR"
-  echo "PAL ${TMPDIR}/atlas_XXXXXXXX"
-  echo "PAL mktemp: " $(mktemp -d ${TMPDIR}/atlas_XXXXXXXX)
-  mktemp -d ${TMPDIR}/atlas_XXXXXXXX
-  echo MKTEMP: $?
   workdir=$(get_workdir)
   log "Workdir: ${workdir}"
   if [[ -f pandaJobData.out ]]; then
@@ -674,33 +673,26 @@ function main() {
   piloturl=$(get_piloturl ${pilotversion})
   log "Using piloturl: ${piloturl}"
 
-  if grep -q "pilot3" <<< "$piloturl"; then
-    log "Pilot URL contains pilot3"
-    pilotbase='pilot3'
-  fi
-
-  if [[ ${pilotversion} == '3' ]]; then
-    log "Setting base to pilot3 since cmd line has pilotversion=3"
-    pilotbase='pilot3'
-  fi
+  log "Only supporting pilot3 so pilotbase directory: pilot3"
+  pilotbase='pilot3'
   echo
 
-  echo "---- Logstash overrides (devel Paul) ----"
-  result=$(get_catchall)
-  if [[ $? -eq 0 ]]; then
-    if grep -q "logging=logstash" <<< "$result"; then
-      if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
-        log 'WARNING: overriding pilot version pilot3->pilot2 for Paul test'
-        pilotbase='pilot2'
-        piloturl='file:///cvmfs/atlas.cern.ch/repo/sw/PandaPilot/tar/pilot2/pilot2.tar.gz'
-      fi
-    else
-      log 'Logstash not requested in CRIC catchall'
-    fi
-  else
-    log 'No content found in CRIC catchall'
-  fi
-  echo
+  #echo "---- Logstash overrides (devel Paul) ----"
+  #result=$(get_catchall)
+  #if [[ $? -eq 0 ]]; then
+  #  if grep -q "logging=logstash" <<< "$result"; then
+  #    if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
+  #      log 'WARNING: overriding pilot version pilot3->pilot2 for Paul test'
+  #      pilotbase='pilot2'
+  #      piloturl='file:///cvmfs/atlas.cern.ch/repo/sw/PandaPilot/tar/pilot2/pilot2.tar.gz'
+  #    fi
+  #  else
+  #    log 'Logstash not requested in CRIC catchall'
+  #  fi
+  #else
+  #  log 'No content found in CRIC catchall'
+  #fi
+  #echo
 
   get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
@@ -780,9 +772,9 @@ function main() {
     if grep -q "logging=logstash" <<< "$result"; then
       log 'Logstash requested via CRIC catchall, running lsetup logstash'
       lsetup logstash
-      if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
-        log 'Overriding pilot version pilot3->pilot2 for Paul test'
-      fi
+#      if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
+#        log 'Overriding pilot version pilot3->pilot2 for Paul test'
+#      fi
     else
       log 'Logstash not requested in CRIC catchall'
     fi
@@ -888,8 +880,6 @@ function usage () {
 
 starttime=$(date +%s)
 
-# wrapper args are explicit if used in the wrapper
-# additional pilot2 args are passed as extra args
 containerflag='false'
 containerarg=''
 harvesterflag='false'
@@ -904,8 +894,8 @@ localpyflag='false'
 tflag='false'
 piloturl=''
 pilotversion='latest'
-pilotbase='pilot2'
-pythonversion='2'
+pilotbase='pilot3'
+pythonversion='3'
 mute='false'
 myargs="$@"
 
