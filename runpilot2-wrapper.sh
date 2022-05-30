@@ -356,12 +356,7 @@ function get_pilot() {
   if [[ ${url} == 'local' ]]; then
     log "piloturl=local so download not needed"
     
-    if [[ -f pilot2.tar.gz ]]; then
-      log "local tarball pilot2.tar.gz exists OK"
-      log "FATAL: pilot version 2 requested, not supported by this wrapper"
-      err "FATAL: pilot version 2 requested, not supported by this wrapper"
-      return 1
-    elif [[ -f pilot3.tar.gz ]]; then
+    if [[ -f pilot3.tar.gz ]]; then
       log "local tarball pilot3.tar.gz exists OK"
       tar -xzf pilot3.tar.gz
       if [[ $? -ne 0 ]]; then
@@ -369,6 +364,11 @@ function get_pilot() {
         err "ERROR: pilot extraction failed for pilot3.tar.gz"
         return 1
       fi
+    elif [[ -f pilot2.tar.gz ]]; then
+      log "local tarball pilot2.tar.gz exists OK"
+      log "FATAL: pilot version 2 requested, not supported by this wrapper"
+      err "FATAL: pilot version 2 requested, not supported by this wrapper"
+      return 1
     else
       log "local pilot[23].tar.gz not found so assuming already extracted"
     fi
