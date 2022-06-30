@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-# pilot wrapper used at CERN central pilot factories
+# pilot wrapper used for Rubin jobs
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220615a-master
+VERSION=20220630a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -17,29 +17,12 @@ function log() {
 }
 
 function get_workdir {
-  if [[ ${piloturl} == 'local' && ${harvesterflag} == 'false' ]]; then
+  if [[ ${piloturl} == 'local' ]]; then
     echo $(pwd)
     return 0
   fi
 
-  if [[ ${harvesterflag} == 'true' ]]; then
-    # test if Harvester WorkFlow is OneToMany aka "Jumbo" Jobs
-    if [[ ${workflowarg} == 'OneToMany' ]]; then
-      if [[ -n ${!harvesterarg} ]]; then
-        templ=$(pwd)/atlas_${!harvesterarg}
-        mkdir ${templ}
-        echo ${templ}
-        return 0
-      fi
-    else
-      echo $(pwd)
-      return 0
-    fi
-  fi
-
-  if [[ -n "${OSG_WN_TMP}" ]]; then
-    templ=${OSG_WN_TMP}/atlas_XXXXXXXX
-  elif [[ -n "${TMPDIR}" ]]; then
+  if [[ -n "${TMPDIR}" ]]; then
     templ=${TMPDIR}/atlas_XXXXXXXX
   else
     templ=$(pwd)/atlas_XXXXXXXX
@@ -91,20 +74,13 @@ function check_python2() {
 }
 
 function setup_python3() {
-  # setup python3 from ALRB, default for grid sites
   if [[ ${localpyflag} == 'true' ]]; then
-    log "localpyflag is true so we skip ALRB python3"
-  elif [[ ${ATLAS_LOCAL_PYTHON} == 'true' ]]; then
-    # email thread 7/7/21 dealing with LRZ SUSE
-    log "Env var ATLAS_LOCAL_PYTHON=true so skip ALRB python3"
+    log "localpyflag is true so we skip ALRB python3, and use default system python3"
   else
-    log "Using ALRB to setup python3"
-    if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then
-        export ATLAS_LOCAL_ROOT_BASE="/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase"
-    fi
-    export ALRB_LOCAL_PY3="YES"
-    source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet
-    lsetup -q "python pilot-default" 
+    log "TODO: localpyflag is NOT true so we setup python explicitly TODO-Rubin, exiting"
+    log "TODO: localpyflag is NOT true so we setup python explicitly TODO-Rubin, exiting"
+    apfmon_fault 1
+    sortie 1
   fi
 }
 
@@ -157,97 +133,25 @@ function check_proxy() {
 }
 
 function check_cvmfs() {
-  export VO_ATLAS_SW_DIR=${VO_ATLAS_SW_DIR:-/cvmfs/atlas.cern.ch/repo/sw}
-  if [[ -d ${VO_ATLAS_SW_DIR} ]]; then
-    log "Found atlas software repository: ${VO_ATLAS_SW_DIR}"
+  local VO_LSST_SW_DIR=/cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
+  if [[ -d ${VO_LSST_SW_DIR} ]]; then
+    log "Found LSST software repository: ${VO_LSST_SW_DIR}"
   else
-    log "ERROR: atlas software repository NOT found: ${VO_ATLAS_SW_DIR}"
-    log "FATAL: Failed to find atlas software repository"
-    err "FATAL: Failed to find atlas software repository"
+    log "ERROR: LSST software repository NOT found: ${VO_LSST_SW_DIR}"
+    log "FATAL: Failed to find LSST software repository"
+    err "FATAL: Failed to find LSST software repository"
     apfmon_fault 1
     sortie 1
   fi
 }
   
 function setup_alrb() {
-  log 'NOTE: rucio,davix,xrootd setup now done in local site setup atlasLocalSetup.sh'
-  if [[ ${iarg} == "RC" ]]; then
-    log 'RC pilot requested, setting ALRB_rucioVersion=testing'
-    export ALRB_rucioVersion=testing
-  fi
-  if [[ ${iarg} == "ALRB" ]]; then
-    log 'ALRB pilot requested, setting ALRB env vars to testing'
-    export ALRB_adcTesting=YES
-  fi
-  export ATLAS_LOCAL_ROOT_BASE=${ATLAS_LOCAL_ROOT_BASE:-/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase}
-  export ALRB_userMenuFmtSkip=YES
-  export ALRB_noGridMW=${ALRB_noGridMW:-NO}
-
-  if [[ ${ALRB_noGridMW} == "YES" ]]; then
-    log "Site has set ALRB_noGridMW=YES so use site native install rather than ALRB"
-    if [[ ${tflag} == 'true' ]]; then
-      log 'Skipping proxy checks due to -t flag'
-    else
-      check_vomsproxyinfo || check_arcproxy
-      if [[ $? -eq 1 ]]; then
-        log "FATAL: Site MW being used but proxy tools not found"
-        err "FATAL: Site MW being used but proxy tools not found"
-        apfmon_fault 1
-        sortie 1
-      fi
-    fi
-  else
-    log "Will use ALRB MW because ALRB_noGridMW=NO (default)"
-  fi
-
+  :
 }
 
 function setup_local() {
-  log "Looking for ${VO_ATLAS_SW_DIR}/local/setup.sh"
-  if [[ -f ${VO_ATLAS_SW_DIR}/local/setup.sh ]]; then
-    if [[ ${pythonversion} == '3' ]]; then
-      log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg} -p python3"
-      source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg} -p python3
-    else
-      log "Sourcing ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}"
-      source ${VO_ATLAS_SW_DIR}/local/setup.sh -s ${qarg}
-    fi
-  else
-    log 'WARNING: No ATLAS local setup found'
-    err 'WARNING: this site has no local setup ${VO_ATLAS_SW_DIR}/local/setup.sh'
-  fi
-  # OSG MW setup, skip if not using ALRB Grid MW
-  if [[ ${ALRB_noGridMW} == "YES" ]]; then
-    if [[ -f ${OSG_GRID}/setup.sh ]]; then
-      log "Setting up OSG MW using ${OSG_GRID}/setup.sh"
-      source ${OSG_GRID}/setup.sh
-    else
-      log 'Env var ALRB_noGridMW=NO, not sourcing ${OSG_GRID}/setup.sh'
-    fi
-  fi
-
+  log "TODO: Setup Rubin /cvmfs/sw.lsst.eu/.../setup.sh"
 }
-
-function setup_shoal() {
-  log "will set FRONTIER_SERVER with shoal"
-
-  outputstr=$(env -i FRONTIER_SERVER="$FRONTIER_SERVER"  /bin/bash -l -c "shoal-client -f")
-  if [[ $? -eq 0 ]] &&  [[ -n "${outputstr}" ]] ; then
-    export FRONTIER_SERVER=${outputstr}
-  else
-    log "WARNING: shoal-client had non-zero exit code or empty output"
-  fi
-
-  log "FRONTIER_SERVER = $FRONTIER_SERVER"
-}
-
-function setup_harvester_symlinks() {
-  for datafile in `find ${HARVESTER_WORKDIR} -maxdepth 1 -type l -exec /usr/bin/readlink -e {} ';'`; do
-      symlinkname=$(basename $datafile)
-      ln -s $datafile $symlinkname
-  done      
-}
-
 
 function check_vomsproxyinfo() {
   out=$(voms-proxy-info --version 2>/dev/null)
@@ -272,22 +176,7 @@ function check_arcproxy() {
 }
 
 function pilot_cmd() {
-
-  # test if not harvester job 
-  if [[ ${harvesterflag} == 'false' ]] ; then  
-    if [[ -n ${pilotversion} ]]; then
-      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} ${pilotargs}"
-    else
-      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} ${pilotargs}"
-    fi
-  else
-    # check to see if we are running OneToMany Harvester workflow (aka Jumbo Jobs)
-    if [[ ${workflowarg} == 'OneToMany' ]] && [ -z ${HARVESTER_PILOT_WORKDIR+x} ] ; then
-      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} -a ${HARVESTER_PILOT_WORKDIR} ${pilotargs}"
-    else
-      cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} ${pilotargs}"
-    fi
-  fi
+  cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} ${pilotargs}"
   echo ${cmd}
 }
 
@@ -351,11 +240,6 @@ function get_pilot() {
 
   local url=$1
 
-  # remove pending chk from Lincoln
-  if [[ ${harvesterflag} == 'true' ]] && [[ ${workflowarg} == 'OneToMany' ]]; then
-    cp -v ${HARVESTER_WORK_DIR}/pilot2.tar.gz .
-  fi
-
   if [[ ${url} == 'local' ]]; then
     log "piloturl=local so download not needed"
     
@@ -367,15 +251,11 @@ function get_pilot() {
         err "ERROR: pilot extraction failed for pilot3.tar.gz"
         return 1
       fi
-    elif [[ -f pilot2.tar.gz ]]; then
-      log "local tarball pilot2.tar.gz exists OK"
-      log "FATAL: pilot version 2 requested, not supported by this wrapper"
-      err "FATAL: pilot version 2 requested, not supported by this wrapper"
-      return 1
     else
-      log "local pilot[23].tar.gz not found so assuming already extracted"
+      log "local pilot3.tar.gz not found so assuming already extracted"
     fi
   else
+    log "TODO: for Rubin, get pilot from /cvmfs/sw.lsst.eu/..."
     curl --connect-timeout 30 --max-time 180 -sSL ${url} | tar -xzf -
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
       log "ERROR: pilot download failed: ${url}"
@@ -385,7 +265,7 @@ function get_pilot() {
   fi
 
   if [[ -f ${pilotbase}/pilot.py ]]; then
-    log "File ${pilotbase}/pilot.py exists OK"
+    log "Sanity check: file ${pilotbase}/pilot.py exists OK"
     log "${pilotbase}/PILOTVERSION: $(cat ${pilotbase}/PILOTVERSION)"
     return 0
   else
@@ -555,7 +435,7 @@ function main() {
 
   if [[ -z ${SINGULARITY_ENVIRONMENT} ]]; then
     # SINGULARITY_ENVIRONMENT not set
-    echo "This is ATLAS pilot wrapper version: $VERSION"
+    echo "This is Rubin pilot wrapper version: $VERSION"
     echo "Please send development requests to p.love@lancaster.ac.uk"
     echo
     log "==== wrapper stdout BEGIN ===="
@@ -666,10 +546,6 @@ function main() {
   fi
   log "cd ${workdir}"
   cd ${workdir}
-  if [[ ${harvesterflag} == 'true' ]]; then
-        export HARVESTER_PILOT_WORKDIR=${workdir}
-        log "Define HARVESTER_PILOT_WORKDIR : ${HARVESTER_PILOT_WORKDIR}"
-  fi
   echo
   
   echo "---- Retrieve pilot code ----"
@@ -679,23 +555,6 @@ function main() {
   log "Only supporting pilot3 so pilotbase directory: pilot3"
   pilotbase='pilot3'
   echo
-
-  #echo "---- Logstash overrides (devel Paul) ----"
-  #result=$(get_catchall)
-  #if [[ $? -eq 0 ]]; then
-  #  if grep -q "logging=logstash" <<< "$result"; then
-  #    if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
-  #      log 'WARNING: overriding pilot version pilot3->pilot2 for Paul test'
-  #      pilotbase='pilot2'
-  #      piloturl='file:///cvmfs/atlas.cern.ch/repo/sw/PandaPilot/tar/pilot2/pilot2.tar.gz'
-  #    fi
-  #  else
-  #    log 'Logstash not requested in CRIC catchall'
-  #  fi
-  #else
-  #  log 'No content found in CRIC catchall'
-  #fi
-  #echo
 
   get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
@@ -721,12 +580,14 @@ function main() {
   
   echo "---- Check python version ----"
   if [[ ${pythonversion} == '3' ]]; then
-    log "python3 selected from cmdline"
+    log "--pythonversion 3 selected from cmdline"
     setup_python3
     check_python3
   else
-    log "Default python2 selected from cmdline"
-    check_python2
+    log "FATAL: python version 3 required, cmdline --pythonversion was: ${pythonversion}"
+    err "FATAL: python version 3 required, cmdline --pythonversion was: ${pythonversion}"
+    apfmon_fault 1
+    sortie 1
   fi
   echo
 
@@ -769,36 +630,6 @@ function main() {
   fi
   echo
 
-  echo "---- Setup logstash ----"
-  result=$(get_catchall)
-  if [[ $? -eq 0 ]]; then
-    if grep -q "logging=logstash" <<< "$result"; then
-      log 'Logstash requested via CRIC catchall, running lsetup logstash'
-      lsetup logstash
-#      if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
-#        log 'Overriding pilot version pilot3->pilot2 for Paul test'
-#      fi
-    else
-      log 'Logstash not requested in CRIC catchall'
-    fi
-  else
-    log 'No content found in CRIC catchall'
-  fi
-  echo
-
-
-  if [[ ${harvesterflag} == 'true' ]]; then
-    echo "---- Create symlinks to input data ----"
-    log 'Create to symlinks to input data from harvester info'
-    setup_harvester_symlinks
-    echo
-  fi
-    
-  if [[ "${shoalflag}" == 'true' ]]; then
-    echo "--- Setup shoal ---"
-    setup_shoal
-    echo
-  fi
 
   echo "---- Proxy Information ----"
   if [[ ${tflag} == 'true' ]]; then
@@ -865,14 +696,12 @@ function usage () {
   echo "Usage: $0 -q <queue> -r <resource> -s <site> [<pilot_args>]"
   echo
   echo "  --container (Standalone container), file to source for release setup "
-  echo "  --harvester (Harvester at HPC edge), NodeID from HPC batch system "
   echo "  -i,   pilot type, default PR"
   echo "  -j,   job type prodsourcelabel, default 'managed'"
   echo "  -q,   panda queue"
   echo "  -r,   panda resource"
   echo "  -s,   sitename for local setup"
   echo "  -t,   pass -t option to pilot, skipping proxy check"
-  echo "  -S,   setup shoal client"
   echo "  --piloturl, URL of pilot code tarball"
   echo "  --pilotversion, request particular pilot version"
   echo "  --pythonversion,   valid values '2' (default), and '3'"
@@ -885,14 +714,12 @@ starttime=$(date +%s)
 
 containerflag='false'
 containerarg=''
-harvesterflag='false'
 harvesterarg=''
 workflowarg=''
 iarg='PR'
 jarg='managed'
 qarg=''
 rarg=''
-shoalflag='false'
 localpyflag='false'
 tflag='false'
 piloturl=''
@@ -916,20 +743,6 @@ case $key in
     containerflag='true'
     #containerarg="$2"
     #shift
-    shift
-    ;;
-    --harvester)
-    harvesterflag='true'
-    harvesterarg="$2"
-    mute='true'
-    piloturl='local'
-    shift
-    shift
-    ;;
-    --harvester_workflow)
-    harvesterflag='true'
-    workflowarg="$2"
-    shift
     shift
     ;;
     --mute)
@@ -980,10 +793,6 @@ case $key in
     localpyflag=true
     shift
     ;;
-    -S|--shoal)
-    shoalflag=true
-    shift
-    ;;
     -t)
     tflag='true'
     POSITIONAL+=("$1") # save it in an array for later
@@ -1001,7 +810,7 @@ if [ -z "${qarg}" ]; then usage; exit 1; fi
 
 pilotargs="$@"
 
-cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
+cricurl="http://pandaserver-doma.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
 fabricmon="http://apfmon.lancs.ac.uk/api"
 if [ -z ${APFMON} ]; then
   APFMON=${fabricmon}
