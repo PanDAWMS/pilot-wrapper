@@ -23,54 +23,12 @@ function get_workdir {
   fi
 
   if [[ -n "${TMPDIR}" ]]; then
-    templ=${TMPDIR}/atlas_XXXXXXXX
+    templ=${TMPDIR}/rubin_XXXXXXXX
   else
-    templ=$(pwd)/atlas_XXXXXXXX
+    templ=$(pwd)/rubin_XXXXXXXX
   fi
   tempd=$(mktemp -d $templ)
   echo ${tempd}
-}
-
-function check_python2() {
-  pybin=$(which python2)
-  if [[ $? -ne 0 ]]; then
-    log "FATAL: python2 not found in PATH"
-    err "FATAL: python2 not found in PATH"
-    if [[ -z "${PATH}" ]]; then
-      log "In fact, PATH env var is unset mon amie"
-      err "In fact, PATH env var is unset mon amie"
-    fi
-    log "PATH content is ${PATH}"
-    err "PATH content is ${PATH}"
-    apfmon_fault 1
-    sortie 1
-  fi
-    
-  pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
-  # we don't want python3 if requesting python2 explicitly
-  if [[ ${pyver} -ge 30 ]] ; then
-    log "ERROR: this site has python > 3.0, but only python2 requested"
-    err "ERROR: this site has python > 3.0, but only python2 requested"
-    apfmon_fault 1
-    sortie 1
-  fi
-
-  # check if native python version > 2.6
-  if [[ ${pyver} -ge 26 ]] ; then
-    log "Native python version is > 2.6 (${pyver})"
-    log "Using ${pybin} for python compatibility"
-    return
-  else
-    log "ERROR: this site has native python < 2.6"
-    err "ERROR: this site has native python < 2.6"
-    log "Native python ${pybin} is old: ${pyver}"
-  
-    # Oh dear, we're doomed...
-    log "FATAL: Failed to find a compatible python, exiting"
-    err "FATAL: Failed to find a compatible python, exiting"
-    apfmon_fault 1
-    sortie 1
-  fi
 }
 
 function setup_python3() {
@@ -541,7 +499,8 @@ function main() {
   workdir=$(get_workdir)
   log "Workdir: ${workdir}"
   if [[ -f pandaJobData.out ]]; then
-    log "Copying job description to working dir"
+    log "Job description file exists (PUSH mode), copying to working dir"
+    log "cp pandaJobData.out $workdir/pandaJobData.out"
     cp pandaJobData.out $workdir/pandaJobData.out
   fi
   log "cd ${workdir}"
@@ -580,7 +539,7 @@ function main() {
   
   echo "---- Check python version ----"
   if [[ ${pythonversion} == '3' ]]; then
-    log "--pythonversion 3 selected from cmdline"
+    log "pythonversion 3 selected from cmdline"
     setup_python3
     check_python3
   else
