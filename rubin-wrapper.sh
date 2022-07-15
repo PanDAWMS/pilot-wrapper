@@ -497,7 +497,7 @@ function main() {
   echo ${cpuinfo_flags}
   echo
 
-  if [[ -z "${LSST_LOCAL_PROLOG}" ]]; then
+  if [[ -n "${LSST_LOCAL_PROLOG}" ]]; then
     if [[ -f "${LSST_LOCAL_PROLOG}" ]]; then
       log "Sourcing local site prolog: ${LSST_LOCAL_PROLOG}"
       source ${LSST_LOCAL_PROLOG}
@@ -641,7 +641,7 @@ function main() {
       log "Test setup, not cleaning"
   fi
 
-  if [[ -z "${LSST_LOCAL_EPILOG}" ]]; then
+  if [[ -n "${LSST_LOCAL_EPILOG}" ]]; then
     if [[ -f "${LSST_LOCAL_EPILOG}" ]]; then
       log "Sourcing local site epilog: ${LSST_LOCAL_EPILOG}"
       source ${LSST_LOCAL_EPILOG}
