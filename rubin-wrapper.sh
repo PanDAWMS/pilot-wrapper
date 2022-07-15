@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220701a-rubin
+VERSION=20220715a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -103,12 +103,15 @@ function check_cvmfs() {
   fi
 }
   
-function setup_alrb() {
-  :
-}
-
-function setup_local() {
+function setup_lsst() {
   log "TODO: Setup Rubin /cvmfs/sw.lsst.eu/.../setup.sh"
+  log "INFO: temp using ALRB to setup rucio"
+  [ -z "$ALRB_noGridMW" ] && export ALRB_noGridMW=YES
+  ALRB_PYTHON_OPT="-3"
+  source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet $ALRB_PYTHON_OPT
+  export RUCIO_ACCOUNT=rubin
+  lsetup rucio 
+  log "rucio whoami: $(rucio whoami)"
 }
 
 function check_vomsproxyinfo() {
@@ -494,7 +497,15 @@ function main() {
   echo ${cpuinfo_flags}
   echo
 
-  
+  if [[ -z "${LSST_LOCAL_PROLOG}" ]]; then
+    if [[ -f "${LSST_LOCAL_PROLOG}" ]]; then
+      log "Sourcing local site prolog: ${LSST_LOCAL_PROLOG}"
+      source ${LSST_LOCAL_PROLOG}
+    else
+      log "WARNING: prolog script not found, expecting LSST_LOCAL_PROLOG=${LSST_LOCAL_PROLOG}"
+    fi
+  fi
+
   echo "---- Enter workdir ----"
   workdir=$(get_workdir)
   log "Workdir: ${workdir}"
@@ -513,7 +524,6 @@ function main() {
 
   log "Only supporting pilot3 so pilotbase directory: pilot3"
   pilotbase='pilot3'
-  echo
 
   get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
@@ -573,22 +583,13 @@ function main() {
   fi
   echo
 
-  echo "---- Setup ALRB ----"
-  if [[ ${containerflag} == 'true' ]]; then
-    log 'Skipping Setup ALRB due to --container flag'
-  else
-    setup_alrb
-  fi
-  echo
-
-  echo "---- Setup local ATLAS ----"
+  echo "---- Setup LSST environ ----"
   if [[ ${containerflag} == 'true' ]]; then
     log 'Skipping Setup local ATLAS due to --container flag'
   else
-    setup_local
+    setup_lsst
   fi
   echo
-
 
   echo "---- Proxy Information ----"
   if [[ ${tflag} == 'true' ]]; then
@@ -600,14 +601,6 @@ function main() {
   echo "---- Job Environment ----"
   printenv | sort
   echo
-  if [[ -n ${ATLAS_LOCAL_AREA} ]]; then
-    log "Content of $ATLAS_LOCAL_AREA/setup.sh.local"
-    cat $ATLAS_LOCAL_AREA/setup.sh.local
-    echo
-  else
-    log "Empty: \$ATLAS_LOCAL_AREA"
-    echo
-  fi
 
   echo "---- Build pilot cmd ----"
   cmd=$(pilot_cmd)
@@ -646,6 +639,15 @@ function main() {
       rm -fr $workdir
   else 
       log "Test setup, not cleaning"
+  fi
+
+  if [[ -z "${LSST_LOCAL_EPILOG}" ]]; then
+    if [[ -f "${LSST_LOCAL_EPILOG}" ]]; then
+      log "Sourcing local site epilog: ${LSST_LOCAL_EPILOG}"
+      source ${LSST_LOCAL_EPILOG}
+    else
+      log "WARNING: epilog script not found, expecting LSST_LOCAL_EPILOG=${LSST_LOCAL_EPILOG}"
+    fi
   fi
 
   sortie 0
