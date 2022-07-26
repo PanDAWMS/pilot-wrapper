@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220615a-master
+VERSION=20220726a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -780,6 +780,20 @@ function main() {
 #      fi
     else
       log 'Logstash not requested in CRIC catchall'
+    fi
+  else
+    log 'No content found in CRIC catchall'
+  fi
+  echo
+
+  echo "---- Setup stomp ----"
+  result=$(get_catchall)
+  if [[ $? -eq 0 ]]; then
+    if grep -q "messaging=stomp" <<< "$result"; then
+      log 'Stomp requested via CRIC catchall, running lsetup stomp'
+      lsetup stomp
+    else
+      log 'Stomp not requested in CRIC catchall'
     fi
   else
     log 'No content found in CRIC catchall'
