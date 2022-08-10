@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220726a-master
+VERSION=20220802a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -770,20 +770,8 @@ function main() {
   echo
 
   echo "---- Setup logstash ----"
-  result=$(get_catchall)
-  if [[ $? -eq 0 ]]; then
-    if grep -q "logging=logstash" <<< "$result"; then
-      log 'Logstash requested via CRIC catchall, running lsetup logstash'
-      lsetup logstash
-#      if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
-#        log 'Overriding pilot version pilot3->pilot2 for Paul test'
-#      fi
-    else
-      log 'Logstash not requested in CRIC catchall'
-    fi
-  else
-    log 'No content found in CRIC catchall'
-  fi
+  log 'Running lsetup logstash'
+  lsetup -q logstash
   echo
 
   echo "---- Setup stomp ----"
@@ -791,7 +779,7 @@ function main() {
   if [[ $? -eq 0 ]]; then
     if grep -q "messaging=stomp" <<< "$result"; then
       log 'Stomp requested via CRIC catchall, running lsetup stomp'
-      lsetup stomp
+      lsetup -q stomp
     else
       log 'Stomp not requested in CRIC catchall'
     fi
