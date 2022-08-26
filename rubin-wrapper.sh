@@ -104,7 +104,8 @@ function check_cvmfs() {
 }
   
 function setup_lsst() {
-  log "TODO: Setup Rubin /cvmfs/sw.lsst.eu/.../setup.sh"
+  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/setup_panda.sh"
+  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/setup_panda.sh
   log "INFO: temp using ALRB to setup rucio"
   [ -z "$ALRB_noGridMW" ] && export ALRB_noGridMW=YES
   ALRB_PYTHON_OPT="-3"
