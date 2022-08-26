@@ -142,27 +142,6 @@ function pilot_cmd() {
   echo ${cmd}
 }
 
-function sing_cmd() {
-  cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS $IMAGE_PATH $0 $myargs"
-  echo ${cmd}
-}
-
-function sing_env() {
-  export SINGULARITYENV_X509_USER_PROXY=${X509_USER_PROXY}
-  if [[ -n "${ATLAS_LOCAL_AREA}" ]]; then
-    export SINGULARITYENV_ATLAS_LOCAL_AREA=${ATLAS_LOCAL_AREA}
-  fi
-  if [[ -n "${TMPDIR}" ]]; then
-    export SINGULARITYENV_TMPDIR=${TMPDIR}
-  fi
-  if [[ -n "${RECOVERY_DIR}" ]]; then
-    export SINGULARITYENV_RECOVERY_DIR=${RECOVERY_DIR}
-  fi
-  if [[ -n "${GTAG}" ]]; then
-    export SINGULARITYENV_GTAG=${GTAG}
-  fi
-}
-
 function get_piloturl() {
   local version=$1
   local pilotdir=file:///cvmfs/atlas.cern.ch/repo/sw/PandaPilot/tar
@@ -353,35 +332,6 @@ function get_environ() {
   fi
 }
 
-function check_singularity() {
-  BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/`uname -m`-el7/current/bin/singularity"
-  IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-centos7"
-  SINGULARITY_OPTIONS="$(get_cricopts) -B /cvmfs -B $PWD --cleanenv"
-  out=$(${BINARY_PATH} --version 2>/dev/null)
-  if [[ $? -eq 0 ]]; then
-    log "Singularity binary found, version $out"
-    log "Singularity binary path: ${BINARY_PATH}"
-  else
-    log "Singularity binary not found"
-  fi
-}
-
-function check_type() {
-  if [[ -f queuedata.json ]]; then
-    result=$(cat queuedata.json | grep container_type | grep 'singularity:wrapper')
-  else
-    result=$(curl --silent $cricurl | grep container_type | grep 'singularity:wrapper')
-  fi
-  if [[ $? -eq 0 ]]; then
-    log "CRIC container_type: singularity:wrapper found"
-    return 0
-  else
-    log "CRIC container_type: singularity:wrapper not found"
-    return 1
-  fi
-}
-
-
 function main() {
   #
   # Fail early, fail often^W with useful diagnostics
@@ -395,78 +345,22 @@ function main() {
   trap 'trap_handler SIGUSR2' SIGUSR2
   trap 'trap_handler SIGBUS' SIGBUS
 
-  if [[ -z ${SINGULARITY_ENVIRONMENT} ]]; then
-    # SINGULARITY_ENVIRONMENT not set
-    echo "This is Rubin pilot wrapper version: $VERSION"
-    echo "Please send development requests to p.love@lancaster.ac.uk"
-    echo
-    log "==== wrapper stdout BEGIN ===="
-    err "==== wrapper stderr BEGIN ===="
-    UUID=$(cat /proc/sys/kernel/random/uuid)
-    apfmon_running
-    log "${cricurl}"
-    echo
-    echo "---- Initial environment ----"
-    printenv | sort
-    echo
-    echo "---- PWD content ----"
-    pwd
-    ls -la
-    echo
-
-    echo "---- Check singularity details (development) ----"
-    cric_opts=$(get_cricopts)
-    if [[ $? -eq 0 ]]; then
-      log "CRIC container_options: $cric_opts"
-    else
-      log "WARNING: failed to get CRIC container_options"
-    fi
-
-    check_type
-    if [[ $? -eq 0 ]]; then
-      use_singularity=true
-      log "container_type contains singularity:wrapper, so use_singularity=true"
-    else
-      use_singularity=false
-    fi
-
-    if [[ ${use_singularity} = true ]]; then
-      # check if already in SINGULARITY environment
-      log 'SINGULARITY_ENVIRONMENT is not set'
-      sing_env
-      log 'Setting SINGULARITY_env'
-      check_singularity
-      export ALRB_noGridMW=NO
-      echo '   _____ _                   __           _ __        '
-      echo '  / ___/(_)___  ____ ___  __/ /___ ______(_) /___  __ '
-      echo '  \__ \/ / __ \/ __ `/ / / / / __ `/ ___/ / __/ / / / '
-      echo ' ___/ / / / / / /_/ / /_/ / / /_/ / /  / / /_/ /_/ /  '
-      echo '/____/_/_/ /_/\__, /\__,_/_/\__,_/_/  /_/\__/\__, /   '
-      echo '             /____/                         /____/    '
-      echo
-      cmd=$(sing_cmd)
-      echo "cmd: $cmd"
-      echo
-      log '==== singularity stdout BEGIN ===='
-      err '==== singularity stderr BEGIN ===='
-      $cmd &
-      singpid=$!
-      wait $singpid
-      log "singularity return code: $?"
-      log '==== singularity stdout END ===='
-      err '==== singularity stderr END ===='
-      log "==== wrapper stdout END ===="
-      err "==== wrapper stderr END ===="
-      exit 0
-    else
-      log 'Will NOT use singularity, at least not from the wrapper'
-    fi
-    echo
-  else
-    log 'SINGULARITY_ENVIRONMENT is set, run basic setup'
-    export ALRB_noGridMW=NO
-    df -h
-  fi
+  echo "This is Rubin pilot wrapper version: $VERSION"
+  echo "Please send development requests to p.love@lancaster.ac.uk"
+  echo
+  log "==== wrapper stdout BEGIN ===="
+  err "==== wrapper stderr BEGIN ===="
+  UUID=$(cat /proc/sys/kernel/random/uuid)
+  apfmon_running
+  log "${cricurl}"
+  echo
+  echo "---- Initial environment ----"
+  printenv | sort
+  echo
+  echo "---- PWD content ----"
+  pwd
+  ls -la
+  echo
 
   echo "---- Host details ----"
   echo "hostname:" $(hostname -f)
@@ -479,7 +373,6 @@ function main() {
     echo "/proc/version:" $(cat /proc/version)
   fi
   echo "lsb_release:" $(lsb_release -d 2>/dev/null)
-  echo "SINGULARITY_ENVIRONMENT:" ${SINGULARITY_ENVIRONMENT}
   
   myargs=$@
   echo "wrapper call: $0 $myargs"
