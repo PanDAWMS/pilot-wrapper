@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220802a-next
+VERSION=20220829a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -525,11 +525,7 @@ function check_singularity() {
 }
 
 function check_type() {
-  if [[ -f queuedata.json ]]; then
-    result=$(cat queuedata.json | grep container_type | grep 'singularity:wrapper')
-  else
-    result=$(curl --silent $cricurl | grep container_type | grep 'singularity:wrapper')
-  fi
+  result=$(curl --silent $cricurl | grep container_type | grep 'singularity:wrapper')
   if [[ $? -eq 0 ]]; then
     log "CRIC container_type: singularity:wrapper found"
     return 0
@@ -1003,7 +999,12 @@ if [ -z "${qarg}" ]; then usage; exit 1; fi
 
 pilotargs="$@"
 
-cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
+if [[ -f queuedata.json ]]; then
+  cricurl="file://${PWD}/queuedata.json"
+else
+  cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
+fi
+
 fabricmon="http://apfmon.lancs.ac.uk/api"
 if [ -z ${APFMON} ]; then
   APFMON=${fabricmon}
