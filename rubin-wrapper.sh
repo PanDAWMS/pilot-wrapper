@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220831a-rubin
+VERSION=20220831b-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -160,16 +160,12 @@ function get_piloturl() {
     sortie 1
   elif [[ ${version} == 'latest' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
-    pilotbase='pilot3'
   elif [[ ${version} == 'current' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
-    pilotbase='pilot3'
   elif [[ ${version} == '3' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
-    pilotbase='pilot3'
   else
     pilottar=${pilotdir}/pilot3-${version}.tar.gz
-    pilotbase='pilot3'
   fi
   echo ${pilottar}
 }
@@ -192,6 +188,9 @@ function get_pilot() {
     else
       log "local pilot3.tar.gz not found so assuming already extracted"
     fi
+    pilotdir=$(tar ztf pilot3.tar.gz | head -1)
+    pilotbase=$(basename ${pilotdir})
+    log "pilotbase: ${pilotbase}"
   else
     log "Extracting pilot from: ${url}"
     curl --connect-timeout 30 --max-time 180 -sSL ${url} | tar -xzf -
@@ -200,6 +199,9 @@ function get_pilot() {
       err "ERROR: pilot download failed: ${url}"
       return 1
     fi
+    pilotdir=$(curl --connect-timeout 30 --max-time 180 -sSL ${url} | tar ztf - | head -1)
+    pilotbase=$(basename ${pilotdir})
+    log "pilotbase: ${pilotbase}"
   fi
 
   if [[ -f ${pilotbase}/pilot.py ]]; then
@@ -412,9 +414,6 @@ function main() {
   echo "---- Retrieve pilot code ----"
   piloturl=$(get_piloturl ${pilotversion})
   log "Using piloturl: ${piloturl}"
-
-  log "Only supporting pilot3 so pilotbase directory: pilot3"
-  pilotbase='pilot3'
 
   get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
