@@ -141,7 +141,7 @@ function pilot_cmd() {
 
 function get_piloturl() {
   local version=$1
-  local pilotdir=file:///cvmfs/atlas.cern.ch/repo/sw/PandaPilot/tar
+  local pilotdir=file:///cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/pilot
 
   if [[ -n ${piloturl} ]]; then
     echo ${piloturl}
@@ -193,7 +193,7 @@ function get_pilot() {
       log "local pilot3.tar.gz not found so assuming already extracted"
     fi
   else
-    log "TODO: for Rubin, get pilot from /cvmfs/sw.lsst.eu/..."
+    log "Extracting pilot from: ${url}"
     curl --connect-timeout 30 --max-time 180 -sSL ${url} | tar -xzf -
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
       log "ERROR: pilot download failed: ${url}"
@@ -540,7 +540,7 @@ function usage () {
   echo "  --piloturl, URL of pilot code tarball"
   echo "  --pilotversion, request particular pilot version"
   echo "  --pythonversion,   valid values '2' (default), and '3'"
-  echo "  --localpy, skip ALRB setup and use local python"
+  echo "  --localpy, use local python"
   echo
   exit 1
 }
