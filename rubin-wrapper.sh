@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220829a-rubin
+VERSION=20220831a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -425,15 +425,6 @@ function main() {
   fi
   echo
   
-  if [[ ${containerflag} == 'true' ]]; then
-    log 'Skipping defining VO_ATLAS_SW_DIR due to --container flag'
-    log 'Skipping defining ATLAS_LOCAL_ROOT_BASE due to --container flag'
-  else
-    export VO_ATLAS_SW_DIR=${VO_ATLAS_SW_DIR:-/cvmfs/atlas.cern.ch/repo/sw}
-    export ATLAS_LOCAL_ROOT_BASE=${ATLAS_LOCAL_ROOT_BASE:-/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase}
-  fi
-  echo
-  
   echo "---- Shell process limits ----"
   ulimit -a
   echo
@@ -452,11 +443,7 @@ function main() {
   echo
 
   echo "---- Check cvmfs area ----"
-  if [[ ${containerflag} == 'true' ]]; then
-    log 'Skipping Check cvmfs area due to --container flag'
-  else
-    check_cvmfs
-  fi
+  check_cvmfs
   echo
 
   echo "--- Bespoke environment from CRIC ---"
@@ -475,11 +462,7 @@ function main() {
   echo
 
   echo "---- Setup LSST environ ----"
-  if [[ ${containerflag} == 'true' ]]; then
-    log 'Skipping Setup local ATLAS due to --container flag'
-  else
-    setup_lsst
-  fi
+  setup_lsst
   echo
 
   echo "---- Proxy Information ----"
@@ -564,8 +547,6 @@ function usage () {
 
 starttime=$(date +%s)
 
-containerflag='false'
-containerarg=''
 harvesterarg=''
 workflowarg=''
 iarg='PR'
@@ -589,12 +570,6 @@ case $key in
     -h|--help)
     usage
     shift
-    shift
-    ;;
-    --container)
-    containerflag='true'
-    #containerarg="$2"
-    #shift
     shift
     ;;
     --mute)
