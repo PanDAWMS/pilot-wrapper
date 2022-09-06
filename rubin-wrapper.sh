@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220831b-rubin
+VERSION=20220906a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -199,7 +199,7 @@ function get_pilot() {
       err "ERROR: pilot download failed: ${url}"
       return 1
     fi
-    pilotdir=$(curl --connect-timeout 30 --max-time 180 -sSL ${url} | tar ztf - | head -1)
+    pilotdir=$(curl --connect-timeout 30 --max-time 180 -sSL ${url} 2>/dev/null | tar ztf - | head -1)
     pilotbase=$(basename ${pilotdir})
     log "pilotbase: ${pilotbase}"
   fi
@@ -372,6 +372,7 @@ function main() {
     echo "/proc/version:" $(cat /proc/version)
   fi
   echo "lsb_release:" $(lsb_release -d 2>/dev/null)
+  ls -l /tmp
   
   myargs=$@
   echo "wrapper call: $0 $myargs"
@@ -393,6 +394,9 @@ function main() {
   if [[ -n "${LSST_LOCAL_PROLOG}" ]]; then
     if [[ -f "${LSST_LOCAL_PROLOG}" ]]; then
       log "Sourcing local site prolog: ${LSST_LOCAL_PROLOG}"
+      log "Content of: ${LSST_LOCAL_PROLOG}"
+      cat ${LSST_LOCAL_PROLOG}
+      echo
       source ${LSST_LOCAL_PROLOG}
     else
       log "WARNING: prolog script not found, expecting LSST_LOCAL_PROLOG=${LSST_LOCAL_PROLOG}"
@@ -517,6 +521,9 @@ function main() {
   if [[ -n "${LSST_LOCAL_EPILOG}" ]]; then
     if [[ -f "${LSST_LOCAL_EPILOG}" ]]; then
       log "Sourcing local site epilog: ${LSST_LOCAL_EPILOG}"
+      log "Content of: ${LSST_LOCAL_EPILOG}"
+      cat ${LSST_LOCAL_EPILOG}
+      echo
       source ${LSST_LOCAL_EPILOG}
     else
       log "WARNING: epilog script not found, expecting LSST_LOCAL_EPILOG=${LSST_LOCAL_EPILOG}"
