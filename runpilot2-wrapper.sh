@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220829a-next
+VERSION=20220912a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -1002,7 +1002,7 @@ pilotargs="$@"
 if [[ -f queuedata.json ]]; then
   cricurl="file://${PWD}/queuedata.json"
 else
-  cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
+  cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${qarg}.all.json"
 fi
 
 fabricmon="http://apfmon.lancs.ac.uk/api"
