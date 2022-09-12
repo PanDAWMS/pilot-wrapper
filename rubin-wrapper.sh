@@ -108,7 +108,8 @@ function setup_lsst() {
   source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/setup_panda.sh
   log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/bin/activate"
   source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/bin/activate
-  log "TODO: rucio setup"
+  log "Running: conda activate pilot"
+  conda activate pilot
   log "rucio whoami: $(rucio whoami)"
 }
 
