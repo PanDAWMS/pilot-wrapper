@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220906a-rubin
+VERSION=20220913a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -77,16 +77,11 @@ function check_python3() {
 
 function check_proxy() {
   voms-proxy-info -all
-  if [[ $? -ne 0 ]]; then
+  if voms-proxy-info -all; then
+    return
+  else
     log "WARNING: error running: voms-proxy-info -all"
     err "WARNING: error running: voms-proxy-info -all"
-    arcproxy -I
-    if [[ $? -eq 127 ]]; then
-      log "FATAL: error running: arcproxy -I"
-      err "FATAL: error running: arcproxy -I"
-      apfmon_fault 1
-      sortie 1
-    fi
   fi
 }
 
@@ -475,6 +470,7 @@ function main() {
   else
     check_proxy
   fi
+  echo
   
   echo "---- Job Environment ----"
   printenv | sort
