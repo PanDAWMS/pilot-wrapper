@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220913a-rubin
+VERSION=20220915b-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -76,7 +76,6 @@ function check_python3() {
 }
 
 function check_proxy() {
-  voms-proxy-info -all
   if voms-proxy-info -all; then
     return
   else
@@ -101,11 +100,9 @@ function check_cvmfs() {
 function setup_lsst() {
   log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/setup_panda.sh"
   source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/setup_panda.sh
-  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/bin/activate"
-  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/bin/activate
-  log "Running: conda activate pilot"
-  conda activate pilot
-  log "rucio whoami: $(rucio whoami)"
+  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/bin/activate pilot"
+  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/bin/activate pilot
+  log "rucio whoami: TODO"
 }
 
 function check_vomsproxyinfo() {
@@ -468,7 +465,8 @@ function main() {
   if [[ ${tflag} == 'true' ]]; then
     log 'Skipping proxy checks due to -t flag'
   else
-    check_proxy
+    :
+    # PAL check_proxy
   fi
   echo
   
