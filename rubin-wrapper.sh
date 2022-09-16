@@ -98,11 +98,11 @@ function check_cvmfs() {
 }
   
 function setup_lsst() {
-  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/setup_panda.sh"
-  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/setup_panda.sh
-  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/bin/activate pilot"
-  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/bin/activate pilot
-  export RUCIO_CONFIG=/cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/envs/pilot/etc/rucio.cfg.atlas.client.template
+  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.3-dev/setup_panda.sh"
+  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.3-dev/setup_panda.sh
+  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.3-dev/conda/install/bin/activate pilot"
+  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.3-dev/conda/install/bin/activate pilot
+  export RUCIO_CONFIG=/cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.3-dev/conda/install/envs/pilot/etc/rucio.cfg.atlas.client.template
   log "rucio whoami: $(rucio whoami)"
   log "rucio ping: $(rucio ping)"
 }
@@ -136,7 +136,7 @@ function pilot_cmd() {
 
 function get_piloturl() {
   local version=$1
-  local pilotdir=file:///cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/pilot
+  local pilotdir=file:///cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.3-dev/pilot
 
   if [[ -n ${piloturl} ]]; then
     echo ${piloturl}
