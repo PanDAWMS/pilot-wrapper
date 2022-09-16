@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220915b-rubin
+VERSION=20220915c-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -102,7 +102,9 @@ function setup_lsst() {
   source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/setup_panda.sh
   log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/bin/activate pilot"
   source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/bin/activate pilot
-  log "rucio whoami: TODO"
+  export RUCIO_CONFIG=/cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.2-dev/conda/install/envs/pilot/etc/rucio.cfg.atlas.client.template
+  log "rucio whoami: $(rucio whoami)"
+  log "rucio ping: $(rucio ping)"
 }
 
 function check_vomsproxyinfo() {
