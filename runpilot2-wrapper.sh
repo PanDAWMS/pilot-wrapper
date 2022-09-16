@@ -62,7 +62,7 @@ function check_python2() {
     apfmon_fault 1
     sortie 1
   fi
-    
+
   pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
   # we don't want python3 if requesting python2 explicitly
   if [[ ${pyver} -ge 30 ]] ; then
@@ -81,7 +81,7 @@ function check_python2() {
     log "ERROR: this site has native python < 2.6"
     err "ERROR: this site has native python < 2.6"
     log "Native python ${pybin} is old: ${pyver}"
-  
+
     # Oh dear, we're doomed...
     log "FATAL: Failed to find a compatible python, exiting"
     err "FATAL: Failed to find a compatible python, exiting"
@@ -104,7 +104,7 @@ function setup_python3() {
     fi
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet
-    lsetup -q "python pilot-default" 
+    lsetup -q "python pilot-default"
   fi
 }
 
@@ -122,7 +122,7 @@ function check_python3() {
     apfmon_fault 1
     sortie 1
   fi
-    
+
   pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
   # check if python version > 3.6
   if [[ ${pyver} -ge 36 ]] ; then
@@ -132,7 +132,7 @@ function check_python3() {
     log "ERROR: this site has python < 3.6"
     err "ERROR: this site has python < 3.6"
     log "Python ${pybin} is old: ${pyver}"
-  
+
     # Oh dear, we're doomed...
     log "FATAL: Failed to find a compatible python, exiting"
     err "FATAL: Failed to find a compatible python, exiting"
@@ -168,7 +168,7 @@ function check_cvmfs() {
     sortie 1
   fi
 }
-  
+
 function setup_alrb() {
   log 'NOTE: rucio,davix,xrootd setup now done in local site setup atlasLocalSetup.sh'
   if [[ ${iarg} == "RC" ]]; then
@@ -245,7 +245,7 @@ function setup_harvester_symlinks() {
   for datafile in `find ${HARVESTER_WORKDIR} -maxdepth 1 -type l -exec /usr/bin/readlink -e {} ';'`; do
       symlinkname=$(basename $datafile)
       ln -s $datafile $symlinkname
-  done      
+  done
 }
 
 
@@ -273,8 +273,8 @@ function check_arcproxy() {
 
 function pilot_cmd() {
 
-  # test if not harvester job 
-  if [[ ${harvesterflag} == 'false' ]] ; then  
+  # test if not harvester job
+  if [[ ${harvesterflag} == 'false' ]] ; then
     if [[ -n ${pilotversion} ]]; then
       cmd="${pybin} ${pilotbase}/pilot.py -q ${qarg} -i ${iarg} -j ${jarg} ${pilotargs}"
     else
@@ -358,7 +358,7 @@ function get_pilot() {
 
   if [[ ${url} == 'local' ]]; then
     log "piloturl=local so download not needed"
-    
+
     if [[ -f pilot3.tar.gz ]]; then
       log "local tarball pilot3.tar.gz exists OK"
       tar -xzf pilot3.tar.gz
@@ -464,7 +464,7 @@ function sortie() {
 
   duration=$(( $(date +%s) - ${starttime} ))
   log "${state} ec=$ec, duration=${duration}"
-  
+
   if [[ ${mute} == 'true' ]]; then
     muted
   else
@@ -634,31 +634,35 @@ function main() {
   fi
   echo "lsb_release:" $(lsb_release -d 2>/dev/null)
   echo "SINGULARITY_ENVIRONMENT:" ${SINGULARITY_ENVIRONMENT}
-  
+
   myargs=$@
   echo "wrapper call: $0 $myargs"
 
   cpuinfo_flags="flags: EMPTY"
   if [ -f /proc/cpuinfo ]; then
     cpuinfo_flags="$(grep '^flags' /proc/cpuinfo 2>/dev/null | sort -u 2>/dev/null)"
-    if [ -z "${cpuinfo_flags}" ]; then 
+    if [ -z "${cpuinfo_flags}" ]; then
       cpuinfo_flags="flags: EMPTY"
     fi
   else
     cpuinfo_flags="flags: EMPTY"
   fi
-  
+
   echo "Flags from /proc/cpuinfo:"
   echo ${cpuinfo_flags}
   echo
 
-  
+
   echo "---- Enter workdir ----"
   workdir=$(get_workdir)
   log "Workdir: ${workdir}"
   if [[ -f pandaJobData.out ]]; then
     log "Copying job description to working dir"
     cp pandaJobData.out $workdir/pandaJobData.out
+  fi
+  if [[ -f ${PANDA_AUTH_TOKEN} ]]; then
+    log "Copying PanDA auth token to working dir"
+    cp ${PANDA_AUTH_TOKEN} $workdir/${PANDA_AUTH_TOKEN}
   fi
   log "cd ${workdir}"
   cd ${workdir}
@@ -667,7 +671,7 @@ function main() {
         log "Define HARVESTER_PILOT_WORKDIR : ${HARVESTER_PILOT_WORKDIR}"
   fi
   echo
-  
+
   echo "---- Retrieve pilot code ----"
   piloturl=$(get_piloturl ${pilotversion})
   log "Using piloturl: ${piloturl}"
@@ -701,7 +705,7 @@ function main() {
     sortie 1
   fi
   echo
-  
+
   if [[ ${containerflag} == 'true' ]]; then
     log 'Skipping defining VO_ATLAS_SW_DIR due to --container flag'
     log 'Skipping defining ATLAS_LOCAL_ROOT_BASE due to --container flag'
@@ -710,11 +714,11 @@ function main() {
     export ATLAS_LOCAL_ROOT_BASE=${ATLAS_LOCAL_ROOT_BASE:-/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase}
   fi
   echo
-  
+
   echo "---- Shell process limits ----"
   ulimit -a
   echo
-  
+
   echo "---- Check python version ----"
   if [[ ${pythonversion} == '3' ]]; then
     log "python3 selected from cmdline"
@@ -791,7 +795,7 @@ function main() {
     setup_harvester_symlinks
     echo
   fi
-    
+
   if [[ "${shoalflag}" == 'true' ]]; then
     echo "--- Setup shoal ---"
     setup_shoal
@@ -804,7 +808,7 @@ function main() {
   else
     check_proxy
   fi
-  
+
   echo "---- Job Environment ----"
   printenv | sort
   echo
@@ -834,7 +838,7 @@ function main() {
   log "==== wrapper stdout RESUME ===="
   log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
-  
+
   if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
     # max 30 pandaids
     pandaids=$(cat ${workdir}/${pilotbase}/pandaIDs.out | xargs echo | cut -d' ' -f-30)
@@ -847,12 +851,12 @@ function main() {
 
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
-  
+
 
   if [[ ${piloturl} != 'local' ]]; then
       log "cleanup: rm -rf $workdir"
       rm -fr $workdir
-  else 
+  else
       log "Test setup, not cleaning"
   fi
 
