@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220916a-master
+VERSION=20220920a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -568,12 +568,14 @@ function main() {
     ls -la
     echo
 
-    echo "---- Check singularity details (development) ----"
+    echo "---- Check singularity details  ----"
     cric_opts=$(get_cricopts)
     if [[ $? -eq 0 ]]; then
       log "CRIC container_options: $cric_opts"
     else
-      log "WARNING: failed to get CRIC container_options"
+      log "ERROR: failed to get CRIC container_options"
+      apfmon_fault 1
+      sortie 1
     fi
 
     check_type
