@@ -467,8 +467,7 @@ function main() {
   if [[ ${tflag} == 'true' ]]; then
     log 'Skipping proxy checks due to -t flag'
   else
-    :
-    # PAL check_proxy
+    check_proxy
   fi
   echo
   
