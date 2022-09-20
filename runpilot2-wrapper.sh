@@ -680,23 +680,6 @@ function main() {
   pilotbase='pilot3'
   echo
 
-  #echo "---- Logstash overrides (devel Paul) ----"
-  #result=$(get_catchall)
-  #if [[ $? -eq 0 ]]; then
-  #  if grep -q "logging=logstash" <<< "$result"; then
-  #    if [[ ${pilotbase} == 'pilot3' && $jarg == 'managed' ]]; then
-  #      log 'WARNING: overriding pilot version pilot3->pilot2 for Paul test'
-  #      pilotbase='pilot2'
-  #      piloturl='file:///cvmfs/atlas.cern.ch/repo/sw/PandaPilot/tar/pilot2/pilot2.tar.gz'
-  #    fi
-  #  else
-  #    log 'Logstash not requested in CRIC catchall'
-  #  fi
-  #else
-  #  log 'No content found in CRIC catchall'
-  #fi
-  #echo
-
   get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code"
