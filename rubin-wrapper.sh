@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220922a-rubin
+VERSION=20220922b-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -98,9 +98,16 @@ function check_cvmfs() {
 }
   
 function setup_lsst() {
-  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}-dev/conda/install/bin/activate pilot"
-  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}-dev/conda/install/bin/activate pilot
-  export RUCIO_CONFIG=/cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}-dev/conda/install/envs/pilot/etc/rucio.cfg.atlas.client.template
+  if [[ -z "$pandaenvtag" ]]; then
+    pandaenvdir=$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v* | head -1)"
+  else
+    pandaenvdir=$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}* | head -1)
+  fi
+
+
+  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvdir}/conda/install/bin/activate pilot"
+  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvdir}/conda/install/bin/activate pilot
+  export RUCIO_CONFIG=/cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvdir}/conda/install/envs/pilot/etc/rucio.cfg.atlas.client.template
   log "rucio whoami: $(rucio whoami)"
   log "rucio ping: $(rucio ping)"
 }
@@ -560,7 +567,7 @@ piloturl=''
 pilotversion='latest'
 pilotbase='pilot3'
 pythonversion='3'
-pandaenvtag='v0.0.4'
+pandaenvtag=''
 mute='false'
 myargs="$@"
 
