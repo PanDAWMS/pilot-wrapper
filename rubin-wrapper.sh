@@ -98,8 +98,6 @@ function check_cvmfs() {
 }
   
 function setup_lsst() {
-  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}-dev/setup_panda.sh"
-  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}-dev/setup_panda.sh
   log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}-dev/conda/install/bin/activate pilot"
   source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}-dev/conda/install/bin/activate pilot
   export RUCIO_CONFIG=/cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}-dev/conda/install/envs/pilot/etc/rucio.cfg.atlas.client.template
@@ -493,6 +491,7 @@ function main() {
   log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
   
+  log "pilotbase2: ${pilotbase}"
   if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
     # max 30 pandaids
     pandaids=$(cat ${workdir}/${pilotbase}/pandaIDs.out | xargs echo | cut -d' ' -f-30)
