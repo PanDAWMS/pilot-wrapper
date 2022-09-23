@@ -99,7 +99,7 @@ function check_cvmfs() {
   
 function setup_lsst() {
   if [[ -z "$pandaenvtag" ]]; then
-    pandaenvdir=$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v* | head -1)"
+    pandaenvdir=$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v* | head -1)
   else
     pandaenvdir=$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}* | head -1)
   fi
