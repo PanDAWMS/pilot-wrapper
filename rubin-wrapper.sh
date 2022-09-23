@@ -407,7 +407,7 @@ function main() {
   workdir=$(get_workdir)
   log "Workdir: ${workdir}"
   if [[ -f pandaJobData.out ]]; then
-    log "Job description file exists (PUSH mode), copying to working dir"
+    log "Job description file exists PUSH mode, copying to working dir"
     log "cp pandaJobData.out $workdir/pandaJobData.out"
     cp pandaJobData.out $workdir/pandaJobData.out
   fi
