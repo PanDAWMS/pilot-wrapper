@@ -105,9 +105,9 @@ function setup_lsst() {
   fi
 
 
-  log "Sourcing: /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvdir}/conda/install/bin/activate pilot"
-  source /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvdir}/conda/install/bin/activate pilot
-  export RUCIO_CONFIG=/cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvdir}/conda/install/envs/pilot/etc/rucio.cfg.atlas.client.template
+  log "Sourcing: ${pandaenvdir}/conda/install/bin/activate pilot"
+  source ${pandaenvdir}/conda/install/bin/activate pilot
+  export RUCIO_CONFIG=${pandaenvdir}/conda/install/envs/pilot/etc/rucio.cfg.atlas.client.template
   log "rucio whoami: $(rucio whoami)"
   log "rucio ping: $(rucio ping)"
 }
