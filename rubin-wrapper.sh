@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220923a-rubin
+VERSION=20220926c-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -33,7 +33,7 @@ function get_workdir {
 
 function setup_python3() {
   if [[ ${localpyflag} == 'true' ]]; then
-    log "localpyflag is true so we skip ALRB python3, and use default system python3"
+    log "localpyflag is true so we use default system python3"
   else
     log "TODO: localpyflag is NOT true so we setup python explicitly TODO-Rubin, exiting"
     log "TODO: localpyflag is NOT true so we setup python explicitly TODO-Rubin, exiting"
@@ -96,15 +96,16 @@ function check_cvmfs() {
     sortie 1
   fi
 }
-  
-function setup_lsst() {
+
+function get_pandaenvdir() {
   if [[ -z "$pandaenvtag" ]]; then
-    pandaenvdir=$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v* | head -1)
+    echo "$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v* | head -1)"
   else
-    pandaenvdir=$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}* | head -1)
+    echo "$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}* | head -1)"
   fi
+}
 
-
+function setup_lsst() {
   log "Sourcing: ${pandaenvdir}/conda/install/bin/activate pilot"
   source ${pandaenvdir}/conda/install/bin/activate pilot
   export RUCIO_CONFIG=${pandaenvdir}/conda/install/envs/pilot/etc/rucio.cfg.atlas.client.template
@@ -141,7 +142,7 @@ function pilot_cmd() {
 
 function get_piloturl() {
   local version=$1
-  local pilotdir=file:///cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v0.0.3-dev/pilot
+  local pilotdir=file://${pandaenvdir}/pilot
 
   if [[ -n ${piloturl} ]]; then
     echo ${piloturl}
@@ -372,7 +373,6 @@ function main() {
     echo "/proc/version:" $(cat /proc/version)
   fi
   echo "lsb_release:" $(lsb_release -d 2>/dev/null)
-  ls -l /tmp
   
   myargs=$@
   echo "wrapper call: $0 $myargs"
@@ -389,6 +389,12 @@ function main() {
   
   echo "Flags from /proc/cpuinfo:"
   echo ${cpuinfo_flags}
+  echo
+
+  echo "---- Check cvmfs area ----"
+  check_cvmfs
+  pandaenvdir=$(get_pandaenvdir)
+  log "pandaenvdir: ${pandaenvdir}"
   echo
 
   if [[ -n "${LSST_LOCAL_PROLOG}" ]]; then
@@ -427,6 +433,9 @@ function main() {
     sortie 1
   fi
   echo
+
+  # mkdir pilot3 since this is hardcoded in pilot3 store_jobid function
+  mkdir -p pilot3
   
   echo "---- Shell process limits ----"
   ulimit -a
@@ -443,10 +452,6 @@ function main() {
     apfmon_fault 1
     sortie 1
   fi
-  echo
-
-  echo "---- Check cvmfs area ----"
-  check_cvmfs
   echo
 
   echo "--- Bespoke environment from CRIC ---"
@@ -468,13 +473,13 @@ function main() {
   setup_lsst
   echo
 
-  echo "---- Proxy Information ----"
-  if [[ ${tflag} == 'true' ]]; then
-    log 'Skipping proxy checks due to -t flag'
-  else
-    check_proxy
-  fi
-  echo
+  # echo "---- Proxy Information ----"
+  #if [[ ${tflag} == 'true' ]]; then
+  #  log 'Skipping proxy checks due to -t flag'
+  #else
+  #  check_proxy
+  #fi
+  #echo
   
   echo "---- Job Environment ----"
   printenv | sort
@@ -498,7 +503,9 @@ function main() {
   log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
   
-  log "pilotbase2: ${pilotbase}"
+  log "Temp override of pilotbase to hardcoded pilot3"
+  log "https://github.com/PanDAWMS/pilot3/issues/54"
+  pilotbase=pilot3
   if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
     # max 30 pandaids
     pandaids=$(cat ${workdir}/${pilotbase}/pandaIDs.out | xargs echo | cut -d' ' -f-30)
