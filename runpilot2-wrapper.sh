@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220920a-next
+VERSION=20220927a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -704,17 +704,6 @@ function main() {
   ulimit -a
   echo
 
-  echo "---- Check python version ----"
-  if [[ ${pythonversion} == '3' ]]; then
-    log "python3 selected from cmdline"
-    setup_python3
-    check_python3
-  else
-    log "Default python2 selected from cmdline"
-    check_python2
-  fi
-  echo
-
   echo "---- Check cvmfs area ----"
   if [[ ${containerflag} == 'true' ]]; then
     log 'Skipping Check cvmfs area due to --container flag'
@@ -743,6 +732,17 @@ function main() {
     log 'Skipping Setup ALRB due to --container flag'
   else
     setup_alrb
+  fi
+  echo
+
+  echo "---- Check python version ----"
+  if [[ ${pythonversion} == '3' ]]; then
+    log "python3 selected from cmdline"
+    setup_python3
+    check_python3
+  else
+    log "Default python2 selected from cmdline"
+    check_python2
   fi
   echo
 
