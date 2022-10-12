@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220926c-rubin
+VERSION=20220930a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -354,6 +354,20 @@ function main() {
   apfmon_running
   log "${cricurl}"
   echo
+
+  echo "---- Host details ----"
+  echo "hostname:" $(hostname -f)
+  echo "pwd:" $(pwd)
+  echo "whoami:" $(whoami)
+  echo "id:" $(id)
+  echo "getopt -V:" $(getopt -V 2>/dev/null)
+  echo "jq --version:" $(jq --version 2>/dev/null)
+  if [[ -r /proc/version ]]; then
+    echo "/proc/version:" $(cat /proc/version)
+  fi
+  echo "lsb_release:" $(lsb_release -d 2>/dev/null)
+  echo
+
   echo "---- Initial environment ----"
   printenv | sort
   echo
@@ -362,18 +376,6 @@ function main() {
   ls -la
   echo
 
-  echo "---- Host details ----"
-  echo "hostname:" $(hostname -f)
-  echo "pwd:" $(pwd)
-  echo "whoami:" $(whoami)
-  echo "id:" $(id)
-  echo "getopt:" $(getopt -V 2>/dev/null)
-  echo "jq:" $(jq --version 2>/dev/null)
-  if [[ -r /proc/version ]]; then
-    echo "/proc/version:" $(cat /proc/version)
-  fi
-  echo "lsb_release:" $(lsb_release -d 2>/dev/null)
-  
   myargs=$@
   echo "wrapper call: $0 $myargs"
 
@@ -397,17 +399,18 @@ function main() {
   log "pandaenvdir: ${pandaenvdir}"
   echo
 
-  if [[ -n "${LSST_LOCAL_PROLOG}" ]]; then
-    if [[ -f "${LSST_LOCAL_PROLOG}" ]]; then
-      log "Sourcing local site prolog: ${LSST_LOCAL_PROLOG}"
-      log "Content of: ${LSST_LOCAL_PROLOG}"
-      cat ${LSST_LOCAL_PROLOG}
-      echo
-      source ${LSST_LOCAL_PROLOG}
-    else
-      log "WARNING: prolog script not found, expecting LSST_LOCAL_PROLOG=${LSST_LOCAL_PROLOG}"
-    fi
+  echo "---- Check python version ----"
+  if [[ ${pythonversion} == '3' ]]; then
+    log "pythonversion 3 selected from cmdline"
+    setup_python3
+    check_python3
+  else
+    log "FATAL: python version 3 required, cmdline --pythonversion was: ${pythonversion}"
+    err "FATAL: python version 3 required, cmdline --pythonversion was: ${pythonversion}"
+    apfmon_fault 1
+    sortie 1
   fi
+  echo
 
   echo "---- Enter workdir ----"
   workdir=$(get_workdir)
@@ -420,7 +423,20 @@ function main() {
   log "cd ${workdir}"
   cd ${workdir}
   echo
-  
+ 
+  echo "---- LSST_LOCAL_PROLOG script ----"
+  if [[ -n "${LSST_LOCAL_PROLOG}" ]]; then
+    if [[ -f "${LSST_LOCAL_PROLOG}" ]]; then
+      log "Sourcing local site prolog: ${LSST_LOCAL_PROLOG}"
+      log "Content of: ${LSST_LOCAL_PROLOG}"
+      cat ${LSST_LOCAL_PROLOG}
+      echo
+      source ${LSST_LOCAL_PROLOG}
+    else
+      log "WARNING: prolog script not found, expecting LSST_LOCAL_PROLOG=${LSST_LOCAL_PROLOG}"
+    fi
+  fi
+
   echo "---- Retrieve pilot code ----"
   piloturl=$(get_piloturl ${pilotversion})
   log "Using piloturl: ${piloturl}"
@@ -441,19 +457,6 @@ function main() {
   ulimit -a
   echo
   
-  echo "---- Check python version ----"
-  if [[ ${pythonversion} == '3' ]]; then
-    log "pythonversion 3 selected from cmdline"
-    setup_python3
-    check_python3
-  else
-    log "FATAL: python version 3 required, cmdline --pythonversion was: ${pythonversion}"
-    err "FATAL: python version 3 required, cmdline --pythonversion was: ${pythonversion}"
-    apfmon_fault 1
-    sortie 1
-  fi
-  echo
-
   echo "--- Bespoke environment from CRIC ---"
   result=$(get_environ)
   if [[ $? -eq 0 ]]; then
@@ -527,6 +530,7 @@ function main() {
       log "Test setup, not cleaning"
   fi
 
+  echo "---- LSST_LOCAL_EPILOG script ----"
   if [[ -n "${LSST_LOCAL_EPILOG}" ]]; then
     if [[ -f "${LSST_LOCAL_EPILOG}" ]]; then
       log "Sourcing local site epilog: ${LSST_LOCAL_EPILOG}"
