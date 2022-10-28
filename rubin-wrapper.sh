@@ -562,6 +562,15 @@ case $key in
     shift
     shift
     ;;
+    --pythonversion)
+    pythonversion="$2"
+    shift
+    shift
+    ;;
+    --localpy)
+    localpyflag=true
+    shift
+    ;;
     --piloturl)
     piloturl="$2"
     shift
