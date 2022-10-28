@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20220930a-rubin
+VERSION=20221025a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -202,7 +202,8 @@ function get_pilot() {
     fi
     pilotdir=$(curl --connect-timeout 30 --max-time 180 -sSL ${url} 2>/dev/null | tar ztf - | head -1)
     pilotbase=$(basename ${pilotdir})
-    log "pilotbase: ${pilotbase}"
+    export PANDA_PILOT_SOURCE=${pilotdir}
+    log "PANDA_PILOT_SOURCE=${PANDA_PILOT_SOURCE}"
   fi
 
   if [[ -f ${pilotbase}/pilot.py ]]; then
