@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20221028a-rubin
+VERSION=20221028b-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -339,15 +339,6 @@ function main() {
     echo "/proc/version:" $(cat /proc/version)
   fi
   echo "lsb_release:" $(lsb_release -d 2>/dev/null)
-  echo
-
-  echo "---- Initial environment ----"
-  printenv | sort
-  echo
-  echo "---- PWD content ----"
-  pwd
-  ls -la
-  echo
 
   myargs=$@
   echo "wrapper call: $0 $myargs"
@@ -364,6 +355,14 @@ function main() {
   
   echo "Flags from /proc/cpuinfo:"
   echo ${cpuinfo_flags}
+  echo
+
+  echo "---- Initial environment ----"
+  printenv | sort
+  echo
+  echo "---- PWD content ----"
+  pwd
+  ls -la
   echo
 
   echo "---- Check cvmfs area ----"
@@ -390,16 +389,12 @@ function main() {
       log "Sourcing local site prolog: ${LSST_LOCAL_PROLOG}"
       log "Content of: ${LSST_LOCAL_PROLOG}"
       cat ${LSST_LOCAL_PROLOG}
-      echo
       source ${LSST_LOCAL_PROLOG}
     else
       log "WARNING: prolog script not found, expecting LSST_LOCAL_PROLOG=${LSST_LOCAL_PROLOG}"
     fi
   fi
-
-  echo "---- Check python version ----"
-  check_python3
-  echo 
+  echo
 
   echo "---- Retrieve pilot code ----"
   piloturl=$(get_piloturl ${pilotversion})
@@ -440,13 +435,17 @@ function main() {
   setup_lsst
   echo
 
-  # echo "---- Proxy Information ----"
-  #if [[ ${tflag} == 'true' ]]; then
-  #  log 'Skipping proxy checks due to -t flag'
-  #else
-  #  check_proxy
-  #fi
-  #echo
+  echo "---- Check python version ----"
+  check_python3
+  echo 
+
+   echo "---- Proxy Information ----"
+  if [[ ${tflag} == 'true' ]]; then
+    log 'Skipping proxy checks due to -t flag'
+  else
+    check_proxy
+  fi
+  echo
   
   echo "---- Job Environment ----"
   printenv | sort
