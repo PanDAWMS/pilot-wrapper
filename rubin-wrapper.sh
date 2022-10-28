@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20221025a-rubin
+VERSION=20221028a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -31,17 +31,6 @@ function get_workdir {
   echo ${tempd}
 }
 
-function setup_python3() {
-  if [[ ${localpyflag} == 'true' ]]; then
-    log "localpyflag is true so we use default system python3"
-  else
-    log "TODO: localpyflag is NOT true so we setup python explicitly TODO-Rubin, exiting"
-    log "TODO: localpyflag is NOT true so we setup python explicitly TODO-Rubin, exiting"
-    apfmon_fault 1
-    sortie 1
-  fi
-}
-
 function check_python3() {
   pybin=$(which python3)
   if [[ $? -ne 0 ]]; then
@@ -53,23 +42,6 @@ function check_python3() {
     fi
     log "PATH content: ${PATH}"
     err "PATH content: ${PATH}"
-    apfmon_fault 1
-    sortie 1
-  fi
-    
-  pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
-  # check if python version > 3.6
-  if [[ ${pyver} -ge 36 ]] ; then
-    log "Python version is > 3.6 (${pyver})"
-    log "Using ${pybin} for python compatibility"
-  else
-    log "ERROR: this site has python < 3.6"
-    err "ERROR: this site has python < 3.6"
-    log "Python ${pybin} is old: ${pyver}"
-  
-    # Oh dear, we're doomed...
-    log "FATAL: Failed to find a compatible python, exiting"
-    err "FATAL: Failed to find a compatible python, exiting"
     apfmon_fault 1
     sortie 1
   fi
@@ -400,19 +372,6 @@ function main() {
   log "pandaenvdir: ${pandaenvdir}"
   echo
 
-  echo "---- Check python version ----"
-  if [[ ${pythonversion} == '3' ]]; then
-    log "pythonversion 3 selected from cmdline"
-    setup_python3
-    check_python3
-  else
-    log "FATAL: python version 3 required, cmdline --pythonversion was: ${pythonversion}"
-    err "FATAL: python version 3 required, cmdline --pythonversion was: ${pythonversion}"
-    apfmon_fault 1
-    sortie 1
-  fi
-  echo
-
   echo "---- Enter workdir ----"
   workdir=$(get_workdir)
   log "Workdir: ${workdir}"
@@ -437,6 +396,10 @@ function main() {
       log "WARNING: prolog script not found, expecting LSST_LOCAL_PROLOG=${LSST_LOCAL_PROLOG}"
     fi
   fi
+
+  echo "---- Check python version ----"
+  check_python3
+  echo 
 
   echo "---- Retrieve pilot code ----"
   piloturl=$(get_piloturl ${pilotversion})
@@ -559,7 +522,6 @@ function usage () {
   echo "  -t,   pass -t option to pilot, skipping proxy check"
   echo "  --piloturl, URL of pilot code tarball"
   echo "  --pilotversion, request particular pilot version"
-  echo "  --pythonversion,   valid values '2' (default), and '3'"
   echo "  --localpy, use local python"
   echo
   exit 1
@@ -573,12 +535,10 @@ iarg='PR'
 jarg='managed'
 qarg=''
 rarg=''
-localpyflag='false'
 tflag='false'
 piloturl=''
 pilotversion='latest'
 pilotbase='pilot3'
-pythonversion='3'
 pandaenvtag=''
 mute='false'
 myargs="$@"
@@ -599,11 +559,6 @@ case $key in
     ;;
     --pilotversion)
     pilotversion="$2"
-    shift
-    shift
-    ;;
-    --pythonversion)
-    pythonversion="$2"
     shift
     shift
     ;;
@@ -640,10 +595,6 @@ case $key in
     -s)
     sarg="$2"
     shift
-    shift
-    ;;
-    --localpy)
-    localpyflag=true
     shift
     ;;
     -t)
