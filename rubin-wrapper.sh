@@ -80,7 +80,7 @@ function get_pandaenvdir() {
 function setup_lsst() {
   log "Sourcing: ${pandaenvdir}/conda/install/bin/activate pilot"
   source ${pandaenvdir}/conda/install/bin/activate pilot
-  export RUCIO_CONFIG=${pandaenvdir}/conda/install/envs/pilot/etc/rucio.cfg.atlas.client.template
+  # RUCIO_CONFIG=/some/path/to/rucio.cfg is temporarily in site PROLOG script
   log "rucio whoami: $(rucio whoami)"
   log "rucio ping: $(rucio ping)"
 }
