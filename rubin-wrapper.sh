@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20221212a-rubin
+VERSION=20221213a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -443,7 +443,9 @@ function main() {
   if [[ ${tflag} == 'true' ]]; then
     log 'Skipping proxy checks due to -t flag'
   else
-    check_proxy
+    :
+    # TODO sort jar issue
+    # check_proxy
   fi
   echo
   
