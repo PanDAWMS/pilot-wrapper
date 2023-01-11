@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20221213a-rubin
+VERSION=20230111a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -320,6 +320,7 @@ function main() {
 
   echo "This is Rubin pilot wrapper version: $VERSION"
   echo "Please send development requests to p.love@lancaster.ac.uk"
+  echo "Wrapper timestamps are UTC"
   echo
   log "==== wrapper stdout BEGIN ===="
   err "==== wrapper stderr BEGIN ===="
