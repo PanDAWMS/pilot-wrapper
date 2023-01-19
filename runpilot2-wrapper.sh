@@ -328,12 +328,12 @@ function get_piloturl() {
   if [[ ${version} == '1' ]]; then
     log "FATAL: pilot version 1 requested, not supported by this wrapper"
     err "FATAL: pilot version 1 requested, not supported by this wrapper"
-    apfmon 1
+    apfmon_fault 1
     sortie 1
   elif [[ ${version} == '2' ]]; then
     log "FATAL: pilot version 2 requested, not supported by this wrapper"
     err "FATAL: pilot version 2 requested, not supported by this wrapper"
-    apfmon 1
+    apfmon_fault 1
     sortie 1
   elif [[ ${version} == 'latest' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
