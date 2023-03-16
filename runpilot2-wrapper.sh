@@ -516,7 +516,15 @@ function get_environ() {
 }
 
 function check_singularity() {
-  BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/`uname -m`-el7/current/bin/singularity"
+  if [[ ${cvmfsbaseflag} == 'true' ]]; then
+    # Until the rest of ATLAS is ready to move to apptainer, we'll only point
+    # to it specifically for CVMFSExec. The relocatable binary functionality we
+    # depend on is not available in Singularity. The interface should otherwise
+    # be the same as singularity.
+    BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/apptainer/`uname -m`-el7/current/bin/apptainer"
+  else
+    BINARY_PATH="/cvmfs/atlas.cern.ch/repo/containers/sw/singularity/`uname -m`-el7/current/bin/singularity"
+  fi
   IMAGE_PATH="/cvmfs/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-centos7"
   SINGULARITY_OPTIONS="$(get_cricopts) -B $ATLAS_SW_BASE:/cvmfs -B $PWD --cleanenv"
   out=$(${BINARY_PATH} --version 2>/dev/null)
@@ -572,6 +580,14 @@ function main() {
     ls -la
     echo
 
+    echo "---- Configure CVMFS base path ----"
+    # CVMFS location needs to be defined fairly early in startup
+    if [[ ${cvmfsbaseflag} == 'true' ]]; then
+      # Log that the CVMFS base is not the usual place
+      log "CVMFS base path defined from commandline: ${cvmfsbasearg}"
+    fi
+    export ATLAS_SW_BASE=${cvmfsbasearg}
+
     echo "---- Check singularity details  ----"
     cric_opts=$(get_cricopts)
     if [[ $? -eq 0 ]]; then
@@ -625,6 +641,9 @@ function main() {
   else
     log 'SINGULARITY_ENVIRONMENT is set, run basic setup'
     export ALRB_noGridMW=NO
+    # Ensure that the ATLAS_SW_BASE gets defined to /cvmfs inside of
+    # singularity/apptainer.
+    export ATLAS_SW_BASE=/cvmfs
     df -h
   fi
 
@@ -679,14 +698,6 @@ function main() {
         log "Define HARVESTER_PILOT_WORKDIR : ${HARVESTER_PILOT_WORKDIR}"
   fi
   echo
-
-  echo "---- Configure CVMFS base path ----"
-  # CVMFS location needs to be defined fairly early in startup
-  if [[ ${cvmfsbaseflag} == 'true' ]]; then
-    # Log that the CVMFS base is not the usual place
-    log "CVMFS base path defined from commandline: ${cvmfsbasearg}"
-  fi
-  export ATLAS_SW_BASE=${cvmfsbasearg}
 
   echo "---- Retrieve pilot code ----"
   piloturl=$(get_piloturl ${pilotversion})
@@ -866,6 +877,7 @@ function usage () {
   echo "Usage: $0 -q <queue> -r <resource> -s <site> [<pilot_args>]"
   echo
   echo "  --container (Standalone container), file to source for release setup "
+  echo "  --cvmfsbase (CVMFSExec), path to CVMFS base, default '/cvmfs'"
   echo "  --harvester (Harvester at HPC edge), NodeID from HPC batch system "
   echo "  -i,   pilot type, default PR"
   echo "  -j,   job type prodsourcelabel, default 'managed'"
