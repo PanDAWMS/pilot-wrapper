@@ -654,8 +654,6 @@ function main() {
   echo "id:" $(id)
   echo "getopt:" $(getopt -V 2>/dev/null)
   echo "jq:" $(jq --version 2>/dev/null)
-  echo "mq:" $(which mosquitto_pub 2>/dev/null)
-  echo "mq:" $(mosquitto_pub --help | grep libmosquitto 2>/dev/null)
   if [[ -r /proc/version ]]; then
     echo "/proc/version:" $(cat /proc/version)
   fi
