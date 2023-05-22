@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20230111a-rubin
+VERSION=20230511a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -83,6 +83,15 @@ function setup_lsst() {
   # RUCIO_CONFIG=/some/path/to/rucio.cfg is temporarily in site PROLOG script
   log "rucio whoami: $(rucio whoami)"
   log "rucio ping: $(rucio ping)"
+  log "DAF_BUTLER_REPOSITORY_INDEX=${DAF_BUTLER_REPOSITORY_INDEX}"
+  stat ${DAF_BUTLER_REPOSITORY_INDEX}
+  if [[ $? -eq 0 ]]; then
+    log 'cat ${DAF_BUTLER_REPOSITORY_INDEX}'
+    cat ${DAF_BUTLER_REPOSITORY_INDEX}
+  else
+    log 'WARNING: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
+    err 'WARNING: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
+  fi
 }
 
 function check_vomsproxyinfo() {
