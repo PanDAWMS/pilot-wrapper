@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20230321a-next
+VERSION=20230522a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -525,7 +525,11 @@ function check_singularity() {
   else
     BINARY_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/sw/singularity/`uname -m`-el7/current/bin/singularity"
   fi
-  IMAGE_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-centos7"
+  if [[ ${alma9flag} == 'true' ]]; then
+    IMAGE_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-almalinux9"
+  else
+    IMAGE_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-centos7"
+  fi
   SINGULARITY_OPTIONS="$(get_cricopts) -B ${ATLAS_SW_BASE}:/cvmfs -B $PWD --cleanenv"
   out=$(${BINARY_PATH} --version 2>/dev/null)
   if [[ $? -eq 0 ]]; then
@@ -876,6 +880,7 @@ function usage () {
   echo
   echo "  --container (Standalone container), file to source for release setup "
   echo "  --cvmfsbase (CVMFSExec), path to CVMFS base, default '/cvmfs'"
+  echo "  --alma9 use alma9 container image"
   echo "  --harvester (Harvester at HPC edge), NodeID from HPC batch system "
   echo "  -i,   pilot type, default PR"
   echo "  -j,   job type prodsourcelabel, default 'managed'"
@@ -898,6 +903,7 @@ containerflag='false'
 containerarg=''
 cvmfsbaseflag='false'
 cvmfsbasearg='/cvmfs'
+alma9flag='false'
 harvesterflag='false'
 harvesterarg=''
 workflowarg=''
@@ -935,6 +941,10 @@ case $key in
     cvmfsbaseflag='true'
     cvmfsbasearg="$2"
     shift
+    shift
+    ;;
+    --alma9)
+    alma9flag='true'
     shift
     ;;
     --harvester)
