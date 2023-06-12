@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20230522a-next
+VERSION=20230608a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -515,16 +515,8 @@ function get_environ() {
   fi
 }
 
-function check_singularity() {
-  if [[ ${cvmfsbaseflag} == 'true' ]]; then
-    # Until the rest of ATLAS is ready to move to apptainer, we'll only point
-    # to it specifically for CVMFSExec. The relocatable binary functionality we
-    # depend on is not available in Singularity. The interface should otherwise
-    # be the same as singularity.
-    BINARY_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/sw/apptainer/`uname -m`-el7/current/bin/apptainer"
-  else
-    BINARY_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/sw/singularity/`uname -m`-el7/current/bin/singularity"
-  fi
+function check_apptainer() {
+  BINARY_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/sw/apptainer/`uname -m`-el7/current/bin/apptainer"
   if [[ ${alma9flag} == 'true' ]]; then
     IMAGE_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-almalinux9"
   else
@@ -533,10 +525,10 @@ function check_singularity() {
   SINGULARITY_OPTIONS="$(get_cricopts) -B ${ATLAS_SW_BASE}:/cvmfs -B $PWD --cleanenv"
   out=$(${BINARY_PATH} --version 2>/dev/null)
   if [[ $? -eq 0 ]]; then
-    log "Singularity binary found, version $out"
-    log "Singularity binary path: ${BINARY_PATH}"
+    log "Apptainer binary found, version $out"
+    log "Apptainer binary path: ${BINARY_PATH}"
   else
-    log "Singularity binary not found"
+    log "Apptainer binary not found"
   fi
 }
 
@@ -615,15 +607,8 @@ function main() {
       log 'SINGULARITY_ENVIRONMENT is not set'
       sing_env
       log 'Setting SINGULARITY_env'
-      check_singularity
+      check_apptainer
       export ALRB_noGridMW=NO
-      echo '   _____ _                   __           _ __        '
-      echo '  / ___/(_)___  ____ ___  __/ /___ ______(_) /___  __ '
-      echo '  \__ \/ / __ \/ __ `/ / / / / __ `/ ___/ / __/ / / / '
-      echo ' ___/ / / / / / /_/ / /_/ / / /_/ / /  / / /_/ /_/ /  '
-      echo '/____/_/_/ /_/\__, /\__,_/_/\__,_/_/  /_/\__/\__, /   '
-      echo '             /____/                         /____/    '
-      echo
       cmd=$(sing_cmd)
       echo "cmd: $cmd"
       echo
@@ -902,7 +887,11 @@ starttime=$(date +%s)
 containerflag='false'
 containerarg=''
 cvmfsbaseflag='false'
-cvmfsbasearg='/cvmfs'
+if [ -z ${ATLAS_SW_BASE} ]; then 
+  cvmfsbasearg='/cvmfs'
+else   
+  cvmfsbasearg="$ATLAS_SW_BASE"
+fi
 alma9flag='false'
 harvesterflag='false'
 harvesterarg=''
