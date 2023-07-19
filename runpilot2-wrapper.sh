@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20230608a-next
+VERSION=20230719a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -45,6 +45,11 @@ function get_workdir {
     templ=$(pwd)/atlas_XXXXXXXX
   fi
   tempd=$(mktemp -d $templ)
+  if [[ $? -ne 0 ]]; then
+    log "ERROR: mktemp failed: $templ"
+    err "ERROR: mktemp failed: $templ"
+    return 1
+  fi
   echo ${tempd}
 }
 
@@ -669,6 +674,12 @@ function main() {
 
   echo "---- Enter workdir ----"
   workdir=$(get_workdir)
+  if [[ $? -ne 0 ]]; then
+    log "FATAL: error with get_workdir"
+    err "FATAL: error with get_workdir"
+    apfmon_fault 1
+    sortie 1
+  fi
   log "Workdir: ${workdir}"
   if [[ -f pandaJobData.out ]]; then
     log "Copying job description to working dir"
