@@ -782,6 +782,11 @@ function main() {
   lsetup -q logstash
   echo
 
+  echo "---- Setup psutil ----"
+  log 'Running lsetup psutil'
+  lsetup -q psutil
+  echo
+
   echo "---- Setup stomp ----"
   result=$(get_catchall)
   if [[ $? -eq 0 ]]; then
