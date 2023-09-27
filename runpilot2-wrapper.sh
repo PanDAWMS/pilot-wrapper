@@ -68,9 +68,9 @@ function check_python2() {
     sortie 1
   fi
 
-  pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
+  pyver=$($pybin -c 'import sys; print("%i%02i" % (sys.version_info.major, sys.version_info.minor))')
   # we don't want python3 if requesting python2 explicitly
-  if [[ ${pyver} -ge 30 ]] ; then
+  if [[ ${pyver} -ge 300 ]] ; then
     log "ERROR: this site has python > 3.0, but only python2 requested"
     err "ERROR: this site has python > 3.0, but only python2 requested"
     apfmon_fault 1
@@ -78,7 +78,7 @@ function check_python2() {
   fi
 
   # check if native python version > 2.6
-  if [[ ${pyver} -ge 26 ]] ; then
+  if [[ ${pyver} -ge 206 ]] ; then
     log "Native python version is > 2.6 (${pyver})"
     log "Using ${pybin} for python compatibility"
     return
