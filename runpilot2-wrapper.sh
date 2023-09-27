@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20230911a-next
+VERSION=20230927a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -132,9 +132,9 @@ function check_python3() {
     sortie 1
   fi
 
-  pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
+  pyver=$($pybin -c 'import sys; print("%i%02i" % (sys.version_info.major, sys.version_info.minor))')
   # check if python version > 3.6
-  if [[ ${pyver} -ge 36 ]] ; then
+  if [[ ${pyver} -ge 306 ]] ; then
     log "Python version is > 3.6 (${pyver})"
     log "Using ${pybin} for python compatibility"
   else
