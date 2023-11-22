@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20230511a-rubin
+VERSION=20231106a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -368,7 +368,7 @@ function main() {
   echo
 
   echo "---- Initial environment ----"
-  printenv | sort
+  printenv
   echo
   echo "---- PWD content ----"
   pwd
@@ -460,7 +460,7 @@ function main() {
   echo
   
   echo "---- Job Environment ----"
-  printenv | sort
+  printenv
   echo
 
   echo "---- Build pilot cmd ----"
