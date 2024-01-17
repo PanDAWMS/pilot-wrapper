@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20230927a-next
+VERSION=20240117a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -108,7 +108,7 @@ function setup_python3() {
         export ATLAS_LOCAL_ROOT_BASE="${ATLAS_SW_BASE}/atlas.cern.ch/repo/ATLASLocalRootBase"
     fi
     export ALRB_LOCAL_PY3="YES"
-    source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet
+    source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet >/dev/null 2>&1
     if [ -z $ALRB_pythonVersion ]; then
       lsetup -q "python pilot-default"
     else
@@ -301,7 +301,7 @@ function pilot_cmd() {
 }
 
 function sing_cmd() {
-  cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS $IMAGE_PATH $0 $myargs"
+  cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS --env "APFCID=$APFCID" --env "APFFID=$APFFID" $IMAGE_PATH $0 $myargs"
   echo ${cmd}
 }
 
@@ -548,6 +548,41 @@ function check_type() {
   fi
 }
 
+function supervise_pilot() {
+  # check pilotlog.txt is being updated otherwise kill the pilot
+  local PILOT_PID=$1
+  local counter=0
+  echo -n "START ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
+  while true; do
+    ((counter++))
+    err "supervise_pilot (15 min periods counter: ${counter})"
+    if [[ -f "pilotlog.txt" ]]; then
+      CURRENT_TIME=$(date +%s)
+      LAST_MODIFICATION=$(stat -c %Y "pilotlog.txt")
+      TIME_DIFF=$(( CURRENT_TIME - LAST_MODIFICATION ))
+
+      echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
+      if [[ $TIME_DIFF -gt 3600 ]]; then
+        log "pilotlog.txt has not been updated in the last hour. Sending interrupt signal to the pilot process."
+        err "pilotlog.txt has not been updated in the last hour. Sending interrupt signal to the pilot process."
+        echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
+        kill -SIGINT $PILOT_PID > /dev/null 2>&1
+        sleep 60
+        if kill -0 $PILOT_PID > /dev/null 2>&1; then
+          log "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
+          err "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
+          kill -SIGKILL $PILOT_PID
+        fi
+      fi
+    else
+      log "pilotlog.txt does not exist (yet)"
+      err "pilotlog.txt does not exist (yet)"
+    fi
+
+    # Check every 15 mins
+    sleep 900
+  done
+}
 
 function main() {
   #
@@ -574,18 +609,19 @@ function main() {
     log "${cricurl}"
     echo
     echo "---- Initial environment ----"
-    printenv | sort
+    printenv
     echo
     echo "---- PWD content ----"
     pwd
     ls -la
     echo
 
-    echo "---- Configure CVMFS base path ----"
     # CVMFS location needs to be defined fairly early in startup
     if [[ ${cvmfsbaseflag} == 'true' ]]; then
+      echo "---- Configure CVMFS base path ----"
       # Log that the CVMFS base is not the usual place
       log "CVMFS base path defined from commandline: ${cvmfsbasearg}"
+      echo
     fi
     export ATLAS_SW_BASE=${cvmfsbasearg}
 
@@ -640,6 +676,7 @@ function main() {
     export ATLAS_SW_BASE=/cvmfs
     df -h
   fi
+  echo
 
   echo "---- Host details ----"
   echo "hostname:" $(hostname -f)
@@ -653,6 +690,7 @@ function main() {
   fi
   echo "lsb_release:" $(lsb_release -d 2>/dev/null)
   echo "SINGULARITY_ENVIRONMENT:" ${SINGULARITY_ENVIRONMENT}
+  echo BASHPID: ${BASHPID}
 
   myargs=$@
   echo "wrapper call: $0 $myargs"
@@ -823,7 +861,7 @@ function main() {
   fi
 
   echo "---- Job Environment ----"
-  printenv | sort
+  printenv
   echo
   if [[ -n ${ATLAS_LOCAL_AREA} ]]; then
     log "Content of $ATLAS_LOCAL_AREA/setup.sh.local"
@@ -845,12 +883,16 @@ function main() {
   log "==== pilot stdout BEGIN ===="
   $cmd &
   pilotpid=$!
-  wait $pilotpid
+  supervise_pilot ${pilotpid} &
+  SUPERVISOR_PID=$!
+  err "Started supervisor process (${SUPERVISOR_PID}) (supervise_pilot watching ${pilotpid})" 
+  wait $pilotpid >/dev/null 2>&1
   pilotrc=$?
   log "==== pilot stdout END ===="
   log "==== wrapper stdout RESUME ===="
   log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
+  kill -SIGINT ${SUPERVISOR_PID} > /dev/null 2>&1
 
   if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
     # max 30 pandaids
@@ -864,7 +906,6 @@ function main() {
 
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
-
 
   if [[ ${piloturl} != 'local' ]]; then
       log "cleanup: rm -rf $workdir"
