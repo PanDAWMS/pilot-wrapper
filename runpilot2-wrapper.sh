@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240118a-master
+VERSION=20240119a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -566,13 +566,13 @@ function supervise_pilot() {
       if [[ $TIME_DIFF -gt 3600 ]]; then
         log "pilotlog.txt has not been updated in the last hour. Sending interrupt signal to the pilot process."
         err "pilotlog.txt has not been updated in the last hour. Sending interrupt signal to the pilot process."
-        echo -n "FAKESIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
-        # kill -SIGINT $PILOT_PID > /dev/null 2>&1
+        echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
+        kill -SIGINT $PILOT_PID > /dev/null 2>&1
         sleep 60
         if kill -0 $PILOT_PID > /dev/null 2>&1; then
-          log "FAKE The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
-          err "FAKE The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
-          #kill -SIGKILL $PILOT_PID
+          log "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
+          err "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
+          kill -SIGKILL $PILOT_PID
         fi
       fi
     else
