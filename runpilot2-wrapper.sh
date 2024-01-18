@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240117a-next
+VERSION=20240117b-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -301,7 +301,7 @@ function pilot_cmd() {
 }
 
 function sing_cmd() {
-  cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS --env "APFCID=$APFCID" --env "APFFID=$APFFID" $IMAGE_PATH $0 $myargs"
+  cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS --env "APFCID=$APFCID" --env "APFFID=$APFFID" --env "HARVESTER_ID=$HARVESTER_ID" --env "HARVESTER_WORKER_ID=$HARVESTER_WORKER_ID" $IMAGE_PATH $0 $myargs"
   echo ${cmd}
 }
 
@@ -553,6 +553,7 @@ function supervise_pilot() {
   local PILOT_PID=$1
   local counter=0
   echo -n "START ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
+  echo -n "START2 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
   while true; do
     ((counter++))
     err "supervise_pilot (15 min periods counter: ${counter})"
