@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240118a-next
+VERSION=20240118x-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -998,6 +998,7 @@ case $key in
     harvesterflag='true'
     harvesterarg="$2"
     mute='true'
+    pandaurl='https://pandaserver.cern.ch:25443'
     piloturl='local'
     shift
     shift
@@ -1019,6 +1020,11 @@ case $key in
     ;;
     --pythonversion)
     pythonversion="$2"
+    shift
+    shift
+    ;;
+    --pandaurl)
+    pandaurl="$2"
     shift
     shift
     ;;
