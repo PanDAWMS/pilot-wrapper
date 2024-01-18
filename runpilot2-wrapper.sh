@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240118b-next
+VERSION=20240118c-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -306,18 +306,18 @@ function sing_cmd() {
 }
 
 function sing_env() {
-  export SINGULARITYENV_X509_USER_PROXY=${X509_USER_PROXY}
+  export APPTAINERENV_X509_USER_PROXY=${X509_USER_PROXY}
   if [[ -n "${ATLAS_LOCAL_AREA}" ]]; then
-    export SINGULARITYENV_ATLAS_LOCAL_AREA=${ATLAS_LOCAL_AREA}
+    export APPTAINERENV_ATLAS_LOCAL_AREA=${ATLAS_LOCAL_AREA}
   fi
   if [[ -n "${TMPDIR}" ]]; then
-    export SINGULARITYENV_TMPDIR=${TMPDIR}
+    export APPTAINERENV_TMPDIR=${TMPDIR}
   fi
   if [[ -n "${RECOVERY_DIR}" ]]; then
-    export SINGULARITYENV_RECOVERY_DIR=${RECOVERY_DIR}
+    export APPTAINERENV_RECOVERY_DIR=${RECOVERY_DIR}
   fi
   if [[ -n "${GTAG}" ]]; then
-    export SINGULARITYENV_GTAG=${GTAG}
+    export APPTAINERENV_GTAG=${GTAG}
   fi
 }
 
@@ -908,6 +908,8 @@ function main() {
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
 
+  echo PAL curl_updateWorkerPilotStatus.config
+  cat curl_updateWorkerPilotStatus.config
   if [[ ${piloturl} != 'local' ]]; then
       log "cleanup: rm -rf $workdir"
       rm -fr $workdir
