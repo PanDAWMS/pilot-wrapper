@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240118c-next
+VERSION=20240119c-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -564,8 +564,8 @@ function supervise_pilot() {
 
       echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
       if [[ $TIME_DIFF -gt 3600 ]]; then
-        log "pilotlog.txt has not been updated in the last hour. Sending interrupt signal to the pilot process."
-        err "pilotlog.txt has not been updated in the last hour. Sending interrupt signal to the pilot process."
+        log "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
+        err "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
         kill -SIGINT $PILOT_PID > /dev/null 2>&1
         sleep 60
@@ -574,6 +574,7 @@ function supervise_pilot() {
           err "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
           kill -SIGKILL $PILOT_PID
         fi
+        exit 2
       fi
     else
       log "pilotlog.txt does not exist (yet)"
@@ -659,12 +660,13 @@ function main() {
       $cmd &
       singpid=$!
       wait $singpid
-      log "singularity return code: $?"
+      singrc=$?
+      log "singularity return code: $singrc"
       log '==== singularity stdout END ===='
       err '==== singularity stderr END ===='
       log "==== wrapper stdout END ===="
       err "==== wrapper stderr END ===="
-      exit 0
+      exit $singrc
     else
       log 'Will NOT use singularity, at least not from the wrapper'
     fi
@@ -886,14 +888,13 @@ function main() {
   pilotpid=$!
   supervise_pilot ${pilotpid} &
   SUPERVISOR_PID=$!
-  err "Started supervisor process (${SUPERVISOR_PID}) (supervise_pilot watching ${pilotpid})" 
+  err "Started supervisor process ($SUPERVISOR_PID) (watching ${pilotpid})" 
   wait $pilotpid >/dev/null 2>&1
   pilotrc=$?
   log "==== pilot stdout END ===="
   log "==== wrapper stdout RESUME ===="
   log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
-  kill -SIGINT ${SUPERVISOR_PID} > /dev/null 2>&1
 
   if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
     # max 30 pandaids
@@ -905,11 +906,23 @@ function main() {
     pandaids=''
   fi
 
+  if [[ $pilotrc -eq 137 ]]; then
+    wait $SUPERVISOR_PID
+    superrc=$?
+    if [[ $superrc -eq 2 ]]; then
+      apfmon_fault 2
+      sortie 2
+    elif [[ $superrc -eq 127 ]]; then
+      apfmon_fault 2
+      sortie 2
+    fi
+  fi
+
+  kill -SIGINT $SUPERVISOR_PID > /dev/null 2>&1
+  
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
 
-  echo PAL curl_updateWorkerPilotStatus.config
-  cat curl_updateWorkerPilotStatus.config
   if [[ ${piloturl} != 'local' ]]; then
       log "cleanup: rm -rf $workdir"
       rm -fr $workdir
