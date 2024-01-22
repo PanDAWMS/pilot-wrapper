@@ -919,7 +919,7 @@ function main() {
     fi
   fi
 
-  kill -SIGTERM $SUPERVISOR_PID > /dev/null 2>&1
+  kill -SIGTERM $SUPERVISOR_PID
   log "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
   err "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
   if kill -0 $SUPERVISOR_PID > /dev/null 2>&1; then
