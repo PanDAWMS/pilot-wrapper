@@ -919,7 +919,7 @@ function main() {
     fi
   fi
 
-  kill -SIGINT $SUPERVISOR_PID > /dev/null 2>&1
+  kill -SIGKILL $SUPERVISOR_PID > /dev/null 2>&1
   
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
