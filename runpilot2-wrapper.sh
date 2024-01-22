@@ -1038,11 +1038,6 @@ case $key in
     shift
     shift
     ;;
-    --pandaurl)
-    pandaurl="$2"
-    shift
-    shift
-    ;;
     --piloturl)
     piloturl="$2"
     shift
