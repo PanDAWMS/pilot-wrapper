@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240122d-master
+VERSION=20240122e-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -887,9 +887,9 @@ function main() {
   log "==== pilot stdout BEGIN ===="
   $cmd &
   pilotpid=$!
-  supervise_pilot ${pilotpid} &
-  SUPERVISOR_PID=$!
-  err "Started supervisor process ($SUPERVISOR_PID) (watching ${pilotpid})" 
+  #supervise_pilot ${pilotpid} &
+  #SUPERVISOR_PID=$!
+  #err "Started supervisor process ($SUPERVISOR_PID) (watching ${pilotpid})" 
   wait $pilotpid >/dev/null 2>&1
   pilotrc=$?
   log "==== pilot stdout END ===="
@@ -907,26 +907,26 @@ function main() {
     pandaids=''
   fi
 
-  if [[ $pilotrc -eq 137 ]]; then
-    wait $SUPERVISOR_PID
-    superrc=$?
-    if [[ $superrc -eq 2 ]]; then
-      apfmon_fault 2
-      sortie 2
-    elif [[ $superrc -eq 127 ]]; then
-      apfmon_fault 2
-      sortie 2
-    fi
-  fi
+  #if [[ $pilotrc -eq 137 ]]; then
+  #  wait $SUPERVISOR_PID
+  #  superrc=$?
+  #  if [[ $superrc -eq 2 ]]; then
+  #    apfmon_fault 2
+  #    sortie 2
+  #  elif [[ $superrc -eq 127 ]]; then
+  #    apfmon_fault 2
+  #    sortie 2
+  #  fi
+  #fi
 
-  kill -SIGTERM $SUPERVISOR_PID
-  log "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
-  err "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
-  if kill -0 $SUPERVISOR_PID > /dev/null 2>&1; then
-    kill -SIGKILL $SUPERVISOR_PID
-    log "Sending SIGKILL to SUPERVISOR_PID=$SUPERVISOR_PID"
-    err "Sending SIGKILL to SUPERVISOR_PID=$SUPERVISOR_PID"
-  fi
+  #kill -SIGTERM $SUPERVISOR_PID
+  #log "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
+  #err "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
+  #if kill -0 $SUPERVISOR_PID > /dev/null 2>&1; then
+  #  kill -SIGKILL $SUPERVISOR_PID
+  #  log "Sending SIGKILL to SUPERVISOR_PID=$SUPERVISOR_PID"
+  #  err "Sending SIGKILL to SUPERVISOR_PID=$SUPERVISOR_PID"
+  #fi
   
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
