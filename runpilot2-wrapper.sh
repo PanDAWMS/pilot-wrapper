@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240122a-master
+VERSION=20240122b-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -919,7 +919,10 @@ function main() {
     fi
   fi
 
-  kill -SIGKILL $SUPERVISOR_PID > /dev/null 2>&1
+  kill -SIGTERM $SUPERVISOR_PID > /dev/null 2>&1
+  if kill -0 $SUPERVISOR_PID > /dev/null 2>&1; then
+    kill -SIGKILL $SUPERVISOR_PID
+  fi
   
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
