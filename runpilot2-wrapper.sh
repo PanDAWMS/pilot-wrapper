@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240122e-master
+VERSION=20240122f-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -568,12 +568,13 @@ function supervise_pilot() {
         log "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
         err "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
-        kill -SIGINT $PILOT_PID > /dev/null 2>&1
+        echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
+        kill -2 $PILOT_PID > /dev/null 2>&1
         sleep 60
         if kill -0 $PILOT_PID > /dev/null 2>&1; then
           log "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
           err "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
-          kill -SIGKILL $PILOT_PID
+          kill -9 $PILOT_PID
         fi
         exit 2
       fi
@@ -887,9 +888,9 @@ function main() {
   log "==== pilot stdout BEGIN ===="
   $cmd &
   pilotpid=$!
-  #supervise_pilot ${pilotpid} &
-  #SUPERVISOR_PID=$!
-  #err "Started supervisor process ($SUPERVISOR_PID) (watching ${pilotpid})" 
+  supervise_pilot ${pilotpid} &
+  SUPERVISOR_PID=$!
+  err "Started supervisor process ($SUPERVISOR_PID) (watching ${pilotpid})" 
   wait $pilotpid >/dev/null 2>&1
   pilotrc=$?
   log "==== pilot stdout END ===="
@@ -907,26 +908,26 @@ function main() {
     pandaids=''
   fi
 
-  #if [[ $pilotrc -eq 137 ]]; then
-  #  wait $SUPERVISOR_PID
-  #  superrc=$?
-  #  if [[ $superrc -eq 2 ]]; then
-  #    apfmon_fault 2
-  #    sortie 2
-  #  elif [[ $superrc -eq 127 ]]; then
-  #    apfmon_fault 2
-  #    sortie 2
-  #  fi
-  #fi
+  if [[ $pilotrc -eq 137 ]]; then
+    wait $SUPERVISOR_PID
+    superrc=$?
+    if [[ $superrc -eq 2 ]]; then
+      apfmon_fault 2
+      sortie 2
+    elif [[ $superrc -eq 127 ]]; then
+      apfmon_fault 2
+      sortie 2
+    fi
+  fi
 
-  #kill -SIGTERM $SUPERVISOR_PID
-  #log "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
-  #err "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
-  #if kill -0 $SUPERVISOR_PID > /dev/null 2>&1; then
-  #  kill -SIGKILL $SUPERVISOR_PID
-  #  log "Sending SIGKILL to SUPERVISOR_PID=$SUPERVISOR_PID"
-  #  err "Sending SIGKILL to SUPERVISOR_PID=$SUPERVISOR_PID"
-  #fi
+  kill -15 $SUPERVISOR_PID
+  log "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
+  err "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
+  if kill -0 $SUPERVISOR_PID > /dev/null 2>&1; then
+    kill -9 $SUPERVISOR_PID
+    log "Sending SIGKILL to SUPERVISOR_PID=$SUPERVISOR_PID"
+    err "Sending SIGKILL to SUPERVISOR_PID=$SUPERVISOR_PID"
+  fi
   
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
