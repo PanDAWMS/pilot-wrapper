@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240123a-master
+VERSION=20240123j-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -470,8 +470,10 @@ function sortie() {
 
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
+  pstree -p $$
 
   duration=$(( $(date +%s) - ${starttime} ))
+  apfmon_exiting ${pilotrc} ${duration}
   log "${state} ec=$ec, duration=${duration}"
 
   if [[ ${mute} == 'true' ]]; then
@@ -908,6 +910,7 @@ function main() {
     pandaids=''
   fi
 
+  # exitcode 2 indicates pilot was intentionally killed
   if [[ $pilotrc -eq 137 ]]; then
     wait $SUPERVISOR_PID
     superrc=$?
@@ -920,17 +923,9 @@ function main() {
     fi
   fi
 
-  kill -15 $SUPERVISOR_PID
-  log "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
-  err "Sending SIGTERM to SUPERVISOR_PID=$SUPERVISOR_PID"
-  if kill -0 $SUPERVISOR_PID > /dev/null 2>&1; then
-    kill -9 $SUPERVISOR_PID
-    log "Sending SIGKILL to SUPERVISOR_PID=$SUPERVISOR_PID"
-    err "Sending SIGKILL to SUPERVISOR_PID=$SUPERVISOR_PID"
-  fi
   
-  duration=$(( $(date +%s) - ${starttime} ))
-  apfmon_exiting ${pilotrc} ${duration}
+#  duration=$(( $(date +%s) - ${starttime} ))
+#  apfmon_exiting ${pilotrc} ${duration}
 
   if [[ ${piloturl} != 'local' ]]; then
       log "cleanup: rm -rf $workdir"
@@ -938,6 +933,12 @@ function main() {
   else
       log "Test setup, not cleaning"
   fi
+
+  pstree -p $$
+  CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
+  log "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
+  err "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
+  kill -15 $CHILD $SUPERVISOR_PID
 
   sortie 0
 }
