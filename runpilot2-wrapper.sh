@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240124b-master
+VERSION=20240125a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -468,7 +468,6 @@ function sortie() {
     state=wrapperfault
   fi
 
-  pstree -p $$
   CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
   log "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
   err "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
@@ -476,7 +475,6 @@ function sortie() {
 
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
-  pstree -p $$
 
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
@@ -560,11 +558,9 @@ function supervise_pilot() {
   # check pilotlog.txt is being updated otherwise kill the pilot
   local PILOT_PID=$1
   local counter=0
-  #echo -n "START ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
-  #echo -n "START2 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
   while true; do
     ((counter++))
-    err "supervise_pilot (15 min periods counter: ${counter})"
+    #err "supervise_pilot (15 min periods counter: ${counter})"
     if [[ -f "pilotlog.txt" ]]; then
       CURRENT_TIME=$(date +%s)
       LAST_MODIFICATION=$(stat -c %Y "pilotlog.txt")
