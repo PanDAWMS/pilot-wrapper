@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240124a-master
+VERSION=20240124b-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -472,7 +472,7 @@ function sortie() {
   CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
   log "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
   err "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
-  kill -15 $CHILD $SUPERVISOR_PID
+  kill -s 15 $CHILD $SUPERVISOR_PID
 
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
@@ -577,12 +577,12 @@ function supervise_pilot() {
         err "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
-        kill -2 $PILOT_PID > /dev/null 2>&1
+        kill -s 2 $PILOT_PID > /dev/null 2>&1
         sleep 60
-        if kill -0 $PILOT_PID > /dev/null 2>&1; then
+        if kill -s 0 $PILOT_PID > /dev/null 2>&1; then
           log "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
           err "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
-          kill -9 $PILOT_PID
+          kill -s 9 $PILOT_PID
         fi
         exit 2
       fi
@@ -600,14 +600,14 @@ function main() {
   #
   # Fail early, fail often^W with useful diagnostics
   #
-  trap 'trap_handler SIGINT' SIGINT
-  trap 'trap_handler SIGTERM' SIGTERM
-  trap 'trap_handler SIGQUIT' SIGQUIT
-  trap 'trap_handler SIGSEGV' SIGSEGV
-  trap 'trap_handler SIGXCPU' SIGXCPU
-  trap 'trap_handler SIGUSR1' SIGUSR1
-  trap 'trap_handler SIGUSR2' SIGUSR2
-  trap 'trap_handler SIGBUS' SIGBUS
+  trap 'trap_handler 2' SIGINT
+  trap 'trap_handler 15' SIGTERM
+  trap 'trap_handler 3' SIGQUIT
+  trap 'trap_handler 11' SIGSEGV
+  trap 'trap_handler 24' SIGXCPU
+  trap 'trap_handler 10' SIGUSR1
+  trap 'trap_handler 12' SIGUSR2
+  trap 'trap_handler 7' SIGBUS
 
   if [[ -z ${SINGULARITY_ENVIRONMENT} ]]; then
     # SINGULARITY_ENVIRONMENT not set
