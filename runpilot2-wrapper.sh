@@ -469,9 +469,9 @@ function sortie() {
   fi
 
   CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
-  log "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
-  err "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
-  kill -s 15 $CHILD $SUPERVISOR_PID
+  log "Cleanup: sending SIGTERM to $CHILD $SUPERVISOR_PID"
+  err "Cleanup: sending SIGTERM to $CHILD $SUPERVISOR_PID"
+  kill -s 15 $CHILD $SUPERVISOR_PID > /dev/null 2>&1
 
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
@@ -569,15 +569,15 @@ function supervise_pilot() {
       echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
       echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
       if [[ $TIME_DIFF -gt 3600 ]]; then
-        log "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
-        err "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
+        log "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
+        err "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
         kill -s 2 $PILOT_PID > /dev/null 2>&1
         sleep 60
         if kill -s 0 $PILOT_PID > /dev/null 2>&1; then
-          log "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
-          err "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
+          log "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL (9)."
+          err "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL (9)."
           kill -s 9 $PILOT_PID
         fi
         exit 2
