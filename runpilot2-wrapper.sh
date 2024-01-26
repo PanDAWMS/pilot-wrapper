@@ -570,9 +570,9 @@ function supervise_pilot() {
       LAST_MODIFICATION=$(stat -c %Y "pilotlog.txt")
       TIME_DIFF=$(( CURRENT_TIME - LAST_MODIFICATION ))
 
-      echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
-      echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
       if [[ $TIME_DIFF -gt 3600 ]]; then
+        echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
+        echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
         log "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
         err "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
