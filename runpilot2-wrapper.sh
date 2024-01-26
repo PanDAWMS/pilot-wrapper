@@ -578,10 +578,10 @@ function supervise_pilot() {
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
         kill -s 2 $PILOT_PID > /dev/null 2>&1
-        sleep 60
+        sleep 180
         if kill -s 0 $PILOT_PID > /dev/null 2>&1; then
-          log "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
-          err "The pilot process ($PILOT_PID) is still running after 60s. Sending SIGKILL."
+          log "The pilot process ($PILOT_PID) is still running after 180s. Sending SIGKILL."
+          err "The pilot process ($PILOT_PID) is still running after 180s. Sending SIGKILL."
           kill -s 9 $PILOT_PID
         fi
         exit 2
