@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240126a-next
+VERSION=20240129a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -474,12 +474,13 @@ function sortie() {
     state=wrapperfault
   fi
 
-  CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
-  if [[ -n "${CHILD}" ]] || [[ -n "$SUPERVISOR_PID" ]]; then
-    log "cleanup: sending SIGTERM to supervise_pilot $SUPERVISOR_PID $CHILD"
-    err "cleanup: sending SIGTERM to supervise_pilot $SUPERVISOR_PID $CHILD"
-    kill -s 15 $CHILD $SUPERVISOR_PID > /dev/null 2>&1
+  CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID" > /dev/null 2>&1)
+  if [[ $? -eq 0 ]]; then
+    log "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
+  else
+    log "No supervise_pilot CHILD process found"
   fi
+  kill -s 15 $CHILD $SUPERVISOR_PID > /dev/null 2>&1
 
   if [[ ${piloturl} != 'local' ]]; then
       log "cleanup: rm -rf $workdir"
