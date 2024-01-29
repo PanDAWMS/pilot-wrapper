@@ -474,7 +474,7 @@ function sortie() {
     state=wrapperfault
   fi
 
-  CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID" > /dev/null 2>&1)
+  CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
   if [[ $? -eq 0 ]]; then
     log "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
   else
