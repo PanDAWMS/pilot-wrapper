@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240126a-master
+VERSION=20240129a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -411,6 +411,7 @@ function muted() {
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
   echo -n "running 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
+  echo -n "running 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
   resource=${GRID_GLOBAL_JOBHOST:-}
   out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
              -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
@@ -426,6 +427,9 @@ function apfmon_running() {
 
 function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
+  log "${state} ec=$ec, duration=${duration}"
+  echo -n "exiting ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
+  echo -n "exiting ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
              -d ids="${pandaids}" -d duration=$2 \
@@ -439,7 +443,8 @@ function apfmon_exiting() {
 
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
-
+  echo -n "fault ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
+  echo -n "fault ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
@@ -452,7 +457,8 @@ function apfmon_fault() {
 
 function trap_handler() {
   if [[ -n "${pilotpid}" ]]; then
-    log "WARNING: Caught $1, signalling pilot PID: $pilotpid"
+    log "WARNING: trap caught signal:$1, signalling pilot PID: $pilotpid"
+    err "WARNING: trap caught signal:$1, signalling pilot PID: $pilotpid"
     kill -s $1 $pilotpid
     wait
   else
@@ -468,25 +474,26 @@ function sortie() {
     state=wrapperfault
   fi
 
-  pstree -p $$
   CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
-  log "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
-  err "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
-  kill -s 15 $CHILD $SUPERVISOR_PID
+  if [[ $? -eq 0 ]]; then
+    log "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
+  else
+    log "No supervise_pilot CHILD process found"
+  fi
+  kill -s 15 $CHILD $SUPERVISOR_PID > /dev/null 2>&1
+
+  if [[ ${piloturl} != 'local' ]]; then
+      log "cleanup: rm -rf $workdir"
+      rm -fr $workdir
+  else
+      log "Test setup, not cleaning"
+  fi
 
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
-  pstree -p $$
 
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
-  log "${state} ec=$ec, duration=${duration}"
-
-  if [[ ${mute} == 'true' ]]; then
-    muted
-  else
-    echo -n "${state} ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  fi
 
   exit $ec
 }
@@ -560,11 +567,9 @@ function supervise_pilot() {
   # check pilotlog.txt is being updated otherwise kill the pilot
   local PILOT_PID=$1
   local counter=0
-  #echo -n "START ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
-  #echo -n "START2 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
   while true; do
     ((counter++))
-    err "supervise_pilot (15 min periods counter: ${counter})"
+    #err "supervise_pilot (15 min periods counter: ${counter})"
     if [[ -f "pilotlog.txt" ]]; then
       CURRENT_TIME=$(date +%s)
       LAST_MODIFICATION=$(stat -c %Y "pilotlog.txt")
@@ -573,15 +578,15 @@ function supervise_pilot() {
       if [[ $TIME_DIFF -gt 3600 ]]; then
         echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
         echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
-        log "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
-        err "pilotlog.txt has not been updated in the last hour. Sending SIGINT signal to the pilot process."
+        log "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
+        err "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
         kill -s 2 $PILOT_PID > /dev/null 2>&1
-        sleep 180
+        sleep 300
         if kill -s 0 $PILOT_PID > /dev/null 2>&1; then
-          log "The pilot process ($PILOT_PID) is still running after 180s. Sending SIGKILL."
-          err "The pilot process ($PILOT_PID) is still running after 180s. Sending SIGKILL."
+          log "The pilot process ($PILOT_PID) is still running after 5m. Sending SIGKILL (9)."
+          err "The pilot process ($PILOT_PID) is still running after 5m. Sending SIGKILL (9)."
           kill -s 9 $PILOT_PID
         fi
         exit 2
@@ -916,26 +921,30 @@ function main() {
     pandaids=''
   fi
 
-  # exitcode 2 indicates pilot was intentionally killed
-  if [[ $pilotrc -eq 137 ]]; then
-    wait $SUPERVISOR_PID
-    superrc=$?
-    if [[ $superrc -eq 2 ]]; then
-      apfmon_fault 2
-      sortie 2
-    elif [[ $superrc -eq 127 ]]; then
-      apfmon_fault 2
-      sortie 2
-    fi
-  fi
+  # pilot handling of signals:
+  # errors.KILLSIGNAL: [137, "General kill signal"],  # Job terminated by unknown kill signal
+  # errors.SIGTERM: [143, "Job killed by signal: SIGTERM"],  # 128+15
+  # errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"],  # 128+3
+  # errors.SIGSEGV: [139, "Job killed by signal: SIGSEGV"],  # 128+11
+  # errors.SIGXCPU: [152, "Job killed by signal: SIGXCPU"],  # 128+24
+  # errors.SIGUSR1: [138, "Job killed by signal: SIGUSR1"],  # 128+10
+  # errors.SIGINT: [130, "Job killed by signal: SIGINT"],  # 128+2
+  # errors.SIGBUS: [135, "Job killed by signal: SIGBUS"]   # 128+7
 
-  if [[ ${piloturl} != 'local' ]]; then
-      log "cleanup: rm -rf $workdir"
-      rm -fr $workdir
-  else
-      log "Test setup, not cleaning"
-  fi
 
+  if [[ $pilotrc -eq 130 ]]; then
+    # killed by supervisor SIGINT so use exitcode 2
+    apfmon_fault 2
+    sortie 2
+  elif [[ $pilotrc -eq 143 ]]; then
+    # killed by SIGTERM, presumable LRMS
+    apfmon_fault 1
+    sortie 1
+  elif [[ $pilotrc -eq 137 ]]; then
+    # killed by SIGKILL, presumable LRMS
+    apfmon_fault 1
+    sortie 1
+  fi
 
   sortie 0
 }
