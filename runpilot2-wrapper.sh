@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240131a-next
+VERSION=20240201a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -109,6 +109,11 @@ function setup_python3() {
     fi
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+      err "FATAL: failed to source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh"
+      apfmon_fault 1
+      sortie 1
+    fi
     if [ -z $ALRB_pythonVersion ]; then
       lsetup -q "python pilot-default"
     else
