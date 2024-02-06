@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240129a-master
+VERSION=20240206a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -109,6 +109,11 @@ function setup_python3() {
     fi
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+      err "FATAL: failed to source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh"
+      apfmon_fault 1
+      sortie 1
+    fi
     if [ -z $ALRB_pythonVersion ]; then
       lsetup -q "python pilot-default"
     else
@@ -474,9 +479,14 @@ function sortie() {
     state=wrapperfault
   fi
 
-  CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
-  if [[ $? -eq 0 ]]; then
-    log "Sending SIGTERM to $CHILD $SUPERVISOR_PID"
+  
+  if [[ -n "${SUPERVISOR_PID}" ]]; then
+    CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
+  else
+    log "No supervise_pilot process found"
+  fi
+  if [[ -n "${CHILD}" ]]; then
+    log "cleanup: SIGTERM to supervisor_pilot $CHILD $SUPERVISOR_PID"
   else
     log "No supervise_pilot CHILD process found"
   fi
@@ -583,10 +593,10 @@ function supervise_pilot() {
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
         kill -s 2 $PILOT_PID > /dev/null 2>&1
-        sleep 300
+        sleep 180
         if kill -s 0 $PILOT_PID > /dev/null 2>&1; then
-          log "The pilot process ($PILOT_PID) is still running after 5m. Sending SIGKILL (9)."
-          err "The pilot process ($PILOT_PID) is still running after 5m. Sending SIGKILL (9)."
+          log "The pilot process ($PILOT_PID) is still running after 3m. Sending SIGKILL (9)."
+          err "The pilot process ($PILOT_PID) is still running after 3m. Sending SIGKILL (9)."
           kill -s 9 $PILOT_PID
         fi
         exit 2
