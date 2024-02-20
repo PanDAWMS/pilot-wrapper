@@ -181,6 +181,24 @@ function check_cvmfs() {
     apfmon_fault 1
     sortie 1
   fi
+
+  if cvmfs_config probe atlas-nightlies.cern.ch; then
+    :
+  else
+    log "FATAL: cvmfs_config probe atlas-nightlies.cern.ch FAILED"
+    err "FATAL: cvmfs_config probe atlas-nightlies.cern.ch FAILED"
+    apfmon_fault 1
+    sortie 1
+  fi
+
+  if cvmfs_config probe sft-nightlies.cern.ch; then
+    :
+  else
+    log "FATAL: cvmfs_config probe sft-nightlies.cern.ch FAILED"
+    err "FATAL: cvmfs_config probe sft-nightlies.cern.ch FAILED"
+    apfmon_fault 1
+    sortie 1
+  fi
 }
 
 function setup_alrb() {
