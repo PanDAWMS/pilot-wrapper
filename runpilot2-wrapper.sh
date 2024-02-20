@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240206a-master
+VERSION=20240220z-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -180,6 +180,33 @@ function check_cvmfs() {
     err "FATAL: Failed to find atlas software repository"
     apfmon_fault 1
     sortie 1
+  fi
+
+  if [ -L /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags ]; then
+    :
+  else
+    log "PASSIVE: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
+    err "PASSIVE: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
+#    apfmon_fault 1
+#    sortie 1
+  fi
+
+  if [ -f /cvmfs/sft.cern.ch/lcg/lastUpdate ]; then
+    :
+  else
+    log "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
+    err "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
+#    apfmon_fault 1
+#    sortie 1
+  fi
+
+  if [ -f /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate ]; then
+    :
+  else
+    log "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
+    err "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
+#    apfmon_fault 1
+#    sortie 1
   fi
 }
 
@@ -461,6 +488,13 @@ function apfmon_fault() {
 }
 
 function trap_handler() {
+  if [[ "$1" == '18' ]]; then
+    # SIGCONT caught so touch pilot log and pass signal to pilot process
+    log "WARNING: trap caught signal:$1, touching pilotlog.txt and signalling pilot PID: $pilotpid"
+    err "WARNING: trap caught signal:$1, touching pilotlog.txt and signalling pilot PID: $pilotpid"
+    touch pilotlog.txt
+    kill -s 18 $pilotpid
+  fi
   if [[ -n "${pilotpid}" ]]; then
     log "WARNING: trap caught signal:$1, signalling pilot PID: $pilotpid"
     err "WARNING: trap caught signal:$1, signalling pilot PID: $pilotpid"
@@ -616,13 +650,14 @@ function main() {
   # Fail early, fail often^W with useful diagnostics
   #
   trap 'trap_handler 2' SIGINT
-  trap 'trap_handler 15' SIGTERM
   trap 'trap_handler 3' SIGQUIT
-  trap 'trap_handler 11' SIGSEGV
-  trap 'trap_handler 24' SIGXCPU
-  trap 'trap_handler 10' SIGUSR1
-  trap 'trap_handler 12' SIGUSR2
   trap 'trap_handler 7' SIGBUS
+  trap 'trap_handler 10' SIGUSR1
+  trap 'trap_handler 11' SIGSEGV
+  trap 'trap_handler 12' SIGUSR2
+  trap 'trap_handler 15' SIGTERM
+  trap 'trap_handler 18' SIGCONT
+  trap 'trap_handler 24' SIGXCPU
 
   if [[ -z ${SINGULARITY_ENVIRONMENT} ]]; then
     # SINGULARITY_ENVIRONMENT not set
