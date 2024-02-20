@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240220z-next
+VERSION=20240220a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -182,22 +182,31 @@ function check_cvmfs() {
     sortie 1
   fi
 
-  if cvmfs_config probe atlas-nightlies.cern.ch; then
+  if [ -L /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags ]; then
     :
   else
-    log "FATAL: cvmfs_config probe atlas-nightlies.cern.ch FAILED"
-    err "FATAL: cvmfs_config probe atlas-nightlies.cern.ch FAILED"
-    apfmon_fault 1
-    sortie 1
+    log "PASSIVE: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
+    err "PASSIVE: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
+#    apfmon_fault 1
+#    sortie 1
   fi
 
-  if cvmfs_config probe sft-nightlies.cern.ch; then
+  if [ -f /cvmfs/sft.cern.ch/lcg/lastUpdate ]; then
     :
   else
-    log "FATAL: cvmfs_config probe sft-nightlies.cern.ch FAILED"
-    err "FATAL: cvmfs_config probe sft-nightlies.cern.ch FAILED"
-    apfmon_fault 1
-    sortie 1
+    log "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
+    err "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
+#    apfmon_fault 1
+#    sortie 1
+  fi
+
+  if [ -f /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate ]; then
+    :
+  else
+    log "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
+    err "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
+#    apfmon_fault 1
+#    sortie 1
   fi
 }
 
