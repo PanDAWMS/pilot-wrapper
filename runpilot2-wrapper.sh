@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240220a-master
+VERSION=20240223a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -986,9 +986,9 @@ function main() {
     apfmon_fault 1
     sortie 1
   elif [[ $pilotrc -eq 137 ]]; then
-    # killed by SIGKILL, presumable LRMS
-    apfmon_fault 1
-    sortie 1
+    # killed by SIGKILL
+    apfmon_fault 2
+    sortie 2
   fi
 
   sortie 0
