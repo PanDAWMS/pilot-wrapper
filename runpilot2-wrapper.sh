@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240223a-master
+VERSION=20240227a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -187,8 +187,7 @@ function check_cvmfs() {
   else
     log "PASSIVE: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
     err "PASSIVE: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
-#    apfmon_fault 1
-#    sortie 1
+    passivecode = 64
   fi
 
   if [ -f /cvmfs/sft.cern.ch/lcg/lastUpdate ]; then
@@ -196,8 +195,7 @@ function check_cvmfs() {
   else
     log "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
     err "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
-#    apfmon_fault 1
-#    sortie 1
+    passivecode = 65
   fi
 
   if [ -f /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate ]; then
@@ -205,8 +203,7 @@ function check_cvmfs() {
   else
     log "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
     err "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-#    apfmon_fault 1
-#    sortie 1
+    passivecode = 66
   fi
 }
 
@@ -989,6 +986,8 @@ function main() {
     # killed by SIGKILL
     apfmon_fault 2
     sortie 2
+  elif [[ -n "$passivecode" ]]; then
+    sortie $passivecode
   fi
 
   sortie 0
