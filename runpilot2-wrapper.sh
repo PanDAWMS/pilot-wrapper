@@ -187,7 +187,7 @@ function check_cvmfs() {
   else
     log "PASSIVE: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
     err "PASSIVE: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
-    passivecode = 64
+    passivecode=64
   fi
 
   if [ -f /cvmfs/sft.cern.ch/lcg/lastUpdate ]; then
@@ -195,7 +195,7 @@ function check_cvmfs() {
   else
     log "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
     err "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
-    passivecode = 64
+    passivecode=64
   fi
 
   if [ -f /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate ]; then
@@ -203,7 +203,7 @@ function check_cvmfs() {
   else
     log "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
     err "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-    passivecode = 64
+    passivecode=64
   fi
 }
 
