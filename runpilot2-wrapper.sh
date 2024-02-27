@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240227a-master
+VERSION=20240227b-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -195,7 +195,7 @@ function check_cvmfs() {
   else
     log "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
     err "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
-    passivecode = 65
+    passivecode = 64
   fi
 
   if [ -f /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate ]; then
@@ -203,7 +203,7 @@ function check_cvmfs() {
   else
     log "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
     err "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-    passivecode = 66
+    passivecode = 64
   fi
 }
 
