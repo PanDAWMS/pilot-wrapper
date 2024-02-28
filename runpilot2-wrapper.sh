@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240228a-master
+VERSION=20240228b-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -203,10 +203,10 @@ function check_cvmfs() {
   if [ -f /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate ]; then
     :
   else
-    log "FATAL: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-    err "FATAL: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-    apfmon_fault 64
-    sortie 64
+    log "WARNING: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
+    err "WARNING: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
+#    apfmon_fault 64
+#    sortie 64
   fi
 }
 
