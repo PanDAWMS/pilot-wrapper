@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240227c-next
+VERSION=20240228a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -178,32 +178,35 @@ function check_cvmfs() {
     log "ERROR: atlas software repository NOT found: ${VO_ATLAS_SW_DIR}"
     log "FATAL: Failed to find atlas software repository"
     err "FATAL: Failed to find atlas software repository"
-    apfmon_fault 1
-    sortie 1
+    apfmon_fault 64
+    sortie 64
   fi
 
   if [ -L /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags ]; then
     :
   else
-    log "PASSIVE: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
-    err "PASSIVE: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
-    passivecode = 64
+    log "FATAL: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
+    err "FATAL: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
+    apfmon_fault 64
+    sortie 64
   fi
 
   if [ -f /cvmfs/sft.cern.ch/lcg/lastUpdate ]; then
     :
   else
-    log "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
-    err "PASSIVE: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
-    passivecode = 64
+    log "FATAL: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
+    err "FATAL: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
+    apfmon_fault 64
+    sortie 64
   fi
 
   if [ -f /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate ]; then
     :
   else
-    log "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-    err "PASSIVE: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-    passivecode = 64
+    log "FATAL: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
+    err "FATAL: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
+    apfmon_fault 64
+    sortie 64
   fi
 }
 
@@ -986,8 +989,6 @@ function main() {
     # killed by SIGKILL
     apfmon_fault 2
     sortie 2
-  elif [[ -n "$passivecode" ]]; then
-    sortie $passivecode
   fi
 
   sortie 0
