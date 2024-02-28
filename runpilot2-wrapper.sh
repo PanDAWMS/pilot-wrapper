@@ -199,15 +199,6 @@ function check_cvmfs() {
     apfmon_fault 64
     sortie 64
   fi
-
-  if [ -f /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate ]; then
-    :
-  else
-    log "FATAL: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-    err "FATAL: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-    apfmon_fault 64
-    sortie 64
-  fi
 }
 
 function setup_alrb() {
