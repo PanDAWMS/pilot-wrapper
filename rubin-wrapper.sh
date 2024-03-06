@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20231106a-rubin
+VERSION=20240306a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -367,8 +367,8 @@ function main() {
   echo ${cpuinfo_flags}
   echo
 
-  echo "---- Initial environment ----"
-  printenv
+  echo "---- Initial environment (redacted) ----"
+  printenv | grep -v GOOGLE_APPLICATION_CREDENTIALS | grep -v LSST_DB_AUTH
   echo
   echo "---- PWD content ----"
   pwd
@@ -397,8 +397,6 @@ function main() {
   if [[ -n "${LSST_LOCAL_PROLOG}" ]]; then
     if [[ -f "${LSST_LOCAL_PROLOG}" ]]; then
       log "Sourcing local site prolog: ${LSST_LOCAL_PROLOG}"
-      log "Content of: ${LSST_LOCAL_PROLOG}"
-      cat ${LSST_LOCAL_PROLOG}
       source ${LSST_LOCAL_PROLOG}
     else
       log "WARNING: prolog script not found, expecting LSST_LOCAL_PROLOG=${LSST_LOCAL_PROLOG}"
@@ -459,8 +457,8 @@ function main() {
   fi
   echo
   
-  echo "---- Job Environment ----"
-  printenv
+  echo "---- Job Environment (redacted) ----"
+  printenv | grep -v GOOGLE_APPLICATION_CREDENTIALS | grep -v LSST_DB_AUTH
   echo
 
   echo "---- Build pilot cmd ----"
