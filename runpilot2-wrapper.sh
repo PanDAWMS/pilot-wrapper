@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240228a-next
+VERSION=20240307a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -182,32 +182,21 @@ function check_cvmfs() {
     sortie 64
   fi
 
-  if [ -L /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags ]; then
-    :
-  else
-    log "FATAL: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
-    err "FATAL: /cvmfs/atlas-nightlies.cern.ch/repo/sw/tags is not symlink"
-    apfmon_fault 64
-    sortie 64
-  fi
+  CVMFS_BASE=${ATLAS_SW_BASE:-/cvmfs}
+  targets="${CVMFS_BASE}/atlas-nightlies.cern.ch/repo/sw/tags \
+           ${CVMFS_BASE}/sft.cern.ch/lcg/lastUpdate \
+           ${CVMFS_BASE}/sft-nightlies.cern.ch/lcg/lastUpdate"
 
-  if [ -f /cvmfs/sft.cern.ch/lcg/lastUpdate ]; then
-    :
-  else
-    log "FATAL: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
-    err "FATAL: /cvmfs/sft.cern.ch/lcg/lastUpdate does not exist"
-    apfmon_fault 64
-    sortie 64
-  fi
-
-  if [ -f /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate ]; then
-    :
-  else
-    log "FATAL: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-    err "FATAL: /cvmfs/sft-nightlies.cern.ch/lcg/lastUpdate does not exist"
-    apfmon_fault 64
-    sortie 64
-  fi
+  for target in ${targets}; do
+    if [ $(cat ${target} | wc -l) -ge 1 ]; then
+      log "${target} is accessible"
+    else
+      log "FATAL: ${target} not accessible or empty"
+      err "FATAL: ${target} not accessible or empty"
+      apfmon_fault 64
+      sortie 64
+    fi
+  done
 }
 
 function setup_alrb() {
