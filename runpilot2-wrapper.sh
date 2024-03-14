@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240307a-next
+VERSION=20240314a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -172,19 +172,13 @@ function check_proxy() {
 
 function check_cvmfs() {
   export VO_ATLAS_SW_DIR=${VO_ATLAS_SW_DIR:-${ATLAS_SW_BASE}/atlas.cern.ch/repo/sw}
-  if [[ -d ${VO_ATLAS_SW_DIR} ]]; then
-    log "Found atlas software repository: ${VO_ATLAS_SW_DIR}"
-  else
-    log "ERROR: atlas software repository NOT found: ${VO_ATLAS_SW_DIR}"
-    log "FATAL: Failed to find atlas software repository"
-    err "FATAL: Failed to find atlas software repository"
-    apfmon_fault 64
-    sortie 64
-  fi
 
   CVMFS_BASE=${ATLAS_SW_BASE:-/cvmfs}
-  targets="${CVMFS_BASE}/atlas-nightlies.cern.ch/repo/sw/tags \
+  targets="${CVMFS_BASE}/atlas.cern.ch/repo/ATLASLocalRootBase/logDir/lastUpdate \
+           ${CVMFS_BASE}/atlas-condb.cern.ch/repo/conditions/logDir/lastUpdate \
+           ${CVMFS_BASE}/atlas-nightlies.cern.ch/repo/sw/logs/lastUpdate \
            ${CVMFS_BASE}/sft.cern.ch/lcg/lastUpdate \
+           ${CVMFS_BASE}/unpacked.cern.ch/logDir/lastUpdate \
            ${CVMFS_BASE}/sft-nightlies.cern.ch/lcg/lastUpdate"
 
   for target in ${targets}; do
