@@ -426,7 +426,7 @@ function muted() {
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
   echo -n "running 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "running 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
+  echo -n "running 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
   resource=${GRID_GLOBAL_JOBHOST:-}
   out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
              -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
@@ -444,7 +444,7 @@ function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "${state} ec=$ec, duration=${duration}"
   echo -n "exiting ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "exiting ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
+  echo -n "exiting ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
              -d ids="${pandaids}" -d duration=$2 \
@@ -459,7 +459,7 @@ function apfmon_exiting() {
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
   echo -n "fault ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "fault ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
+  echo -n "fault ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
@@ -603,12 +603,12 @@ function supervise_pilot() {
       TIME_DIFF=$(( CURRENT_TIME - LAST_MODIFICATION ))
 
       if [[ $TIME_DIFF -gt 3600 ]]; then
-        echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
-        echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
+        echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.96.15/28527
+        echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
         log "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
         err "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
-        echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.72.40/28527
-        echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.72.40/28527
+        echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.96.15/28527
+        echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
         kill -s 2 $PILOT_PID > /dev/null 2>&1
         sleep 180
         if kill -s 0 $PILOT_PID > /dev/null 2>&1; then
