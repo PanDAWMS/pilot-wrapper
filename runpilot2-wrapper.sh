@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240314a-master
+VERSION=20240416z-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -859,6 +859,11 @@ function main() {
   else
     setup_local
   fi
+  echo
+
+  echo "---- Setup ALRB curl ----"
+  log 'Running lsetup curl'
+  lsetup -q curl
   echo
 
   echo "---- Setup logstash ----"
