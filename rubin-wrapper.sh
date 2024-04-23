@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240306a-rubin
+VERSION=20240423a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -81,8 +81,6 @@ function setup_lsst() {
   log "Sourcing: ${pandaenvdir}/conda/install/bin/activate pilot"
   source ${pandaenvdir}/conda/install/bin/activate pilot
   # RUCIO_CONFIG=/some/path/to/rucio.cfg is temporarily in site PROLOG script
-  log "rucio whoami: $(rucio whoami)"
-  log "rucio ping: $(rucio ping)"
   log "DAF_BUTLER_REPOSITORY_INDEX=${DAF_BUTLER_REPOSITORY_INDEX}"
   stat ${DAF_BUTLER_REPOSITORY_INDEX}
   if [[ $? -eq 0 ]]; then
