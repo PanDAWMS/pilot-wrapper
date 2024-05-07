@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240503a-master
+VERSION=20240507a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -111,8 +111,8 @@ function setup_python3() {
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
       err "FATAL: failed to source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh"
-      apfmon_fault 1
-      sortie 1
+      apfmon_fault 64
+      sortie 64
     fi
     if [ -z $ALRB_pythonVersion ]; then
       lsetup -q "python pilot-default"
@@ -793,8 +793,8 @@ function main() {
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code"
     err "FATAL: failed to get pilot code"
-    apfmon_fault 1
-    sortie 1
+    apfmon_fault 64
+    sortie 64
   fi
   echo
 
