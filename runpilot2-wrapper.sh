@@ -503,7 +503,7 @@ function sortie() {
     log "No supervise_pilot process found"
   fi
   if [[ -n "${CHILD}" ]]; then
-    log "cleanup: SIGTERM to supervisor_pilot $CHILD $SUPERVISOR_PID"
+    log "cleanup supervisor_pilot $CHILD $SUPERVISOR_PID"
   else
     log "No supervise_pilot CHILD process found"
   fi
