@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240423a-rubin
+VERSION=20240612a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -80,7 +80,7 @@ function get_pandaenvdir() {
 function setup_lsst() {
   log "Sourcing: ${pandaenvdir}/conda/install/bin/activate pilot"
   source ${pandaenvdir}/conda/install/bin/activate pilot
-  # RUCIO_CONFIG=/some/path/to/rucio.cfg is temporarily in site PROLOG script
+  export PILOT_ES_EXECUTOR_TYPE=fineGrainedProc
   log "DAF_BUTLER_REPOSITORY_INDEX=${DAF_BUTLER_REPOSITORY_INDEX}"
   stat ${DAF_BUTLER_REPOSITORY_INDEX}
   if [[ $? -eq 0 ]]; then
