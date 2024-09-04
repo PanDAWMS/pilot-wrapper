@@ -427,7 +427,7 @@ function panda_update_worker_pilot_status() {
        -H 'Accept: application/json' \
        --data-urlencode "workerID=${HARVERSTER_WORKER_ID-None}" \
        --data-urlencode "harvesterID=${HARVESTER_ID-None}" \
-       --data-urlencode 'status=wrapperrunning' \
+       --data-urlencode 'status=running' \
        --data-urlencode "site=${qarg}" \
        --data-urlencode "node_id=$(hostname -f)" \
        'http://pandaserver.cern.ch:25085/server/panda/updateWorkerPilotStatus'
