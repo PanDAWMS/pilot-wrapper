@@ -430,7 +430,7 @@ function panda_update_worker_pilot_status() {
        --data-urlencode 'status=running' \
        --data-urlencode "site=${qarg}" \
        --data-urlencode "node_id=$(hostname -f)" \
-       'http://pandaserver.cern.ch:25085/server/panda/updateWorkerPilotStatus'
+       "${pandaurl}/server/panda/updateWorkerPilotStatus"
 }
 
 function muted() {
@@ -1038,6 +1038,7 @@ rarg=''
 shoalflag='false'
 localpyflag='false'
 tflag='false'
+pandaurl='http://pandaserver.cern.ch:25085'
 piloturl=''
 pilotversion='latest'
 pilotbase='pilot3'
@@ -1158,7 +1159,7 @@ pilotargs="$@"
 if [[ -f queuedata.json ]]; then
   cricurl="file://${PWD}/queuedata.json"
 else
-  cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${qarg}.all.json"
+  cricurl="${pandaurl}/cache/schedconfig/${qarg}.all.json"
 fi
 
 fabricmon="http://apfmon.lancs.ac.uk/api"
