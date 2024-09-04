@@ -419,6 +419,20 @@ function get_pilot() {
   fi
 }
 
+function panda_update_worker_pilot_status() {
+  curl -sS --compressed --connect-timeout 100 --max-time 120 \
+       --capath /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/etc/grid-security-emi/certificates \
+       --cacert "${X509_USER_PROXY}" --cert "${X509_USER_PROXY}" --key "${X509_USER_PROXY}" \
+       -H "User-Agent: pilot-wrapper/${VERSION} ($(uname -sm))" \
+       -H 'Accept: application/json' \
+       --data-urlencode "workerID=${HARVERSTER_WORKER_ID-None}" \
+       --data-urlencode "harvesterID=${HARVESTER_ID-None}" \
+       --data-urlencode 'status=wrapperrunning' \
+       --data-urlencode "site=${qarg}" \
+       --data-urlencode "node_id=$(hostname -f)" \
+       'http://pandaserver.cern.ch:25085/server/panda/updateWorkerPilotStatus'
+}
+
 function muted() {
   log "apfmon messages muted"
 }
@@ -650,6 +664,7 @@ function main() {
     log "==== wrapper stdout BEGIN ===="
     err "==== wrapper stderr BEGIN ===="
     UUID=$(cat /proc/sys/kernel/random/uuid)
+    panda_update_worker_pilot_status
     apfmon_running
     log "${cricurl}"
     echo
