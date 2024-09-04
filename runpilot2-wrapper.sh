@@ -421,7 +421,7 @@ function get_pilot() {
 
 function panda_update_worker_pilot_status() {
   curl -sS --compressed --connect-timeout 100 --max-time 120 \
-       --capath /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/etc/grid-security-emi/certificates \
+       --capath "${ATLAS_LOCAL_ROOT_BASE:-${ATLAS_SW_BASE:-/cvmfs}/atlas.cern.ch/repo/ATLASLocalRootBase}/etc/grid-security-emi/certificates" \
        --cacert "${X509_USER_PROXY}" --cert "${X509_USER_PROXY}" --key "${X509_USER_PROXY}" \
        -H "User-Agent: pilot-wrapper/${VERSION} ($(uname -sm))" \
        -H 'Accept: application/json' \
