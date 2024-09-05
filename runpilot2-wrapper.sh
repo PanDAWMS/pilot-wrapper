@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240621a-master
+VERSION=20240905a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -628,6 +628,21 @@ function supervise_pilot() {
   done
 }
 
+function panda_update_worker_pilot_status() {
+  log "Sending panda_update_worker_pilot_status started"
+  curl -sS -o /dev/null --compressed --connect-timeout 10 --max-time 20 \
+       --capath "${ATLAS_LOCAL_ROOT_BASE:-${ATLAS_SW_BASE:-/cvmfs}/atlas.cern.ch/repo/ATLASLocalRootBase}/etc/grid-security-emi/certificates" \
+       --cacert "${X509_USER_PROXY}" --cert "${X509_USER_PROXY}" --key "${X509_USER_PROXY}" \
+       -H "User-Agent: pilot-wrapper/${VERSION} ($(uname -sm))" \
+       -H 'Accept: application/json' \
+       --data-urlencode "workerID=${HARVESTER_WORKER_ID}" \
+       --data-urlencode "harvesterID=${HARVESTER_ID}" \
+       --data-urlencode 'status=started' \
+       --data-urlencode "site=${qarg}" \
+       --data-urlencode "node_id=$(hostname -f)" \
+       "${pandaurl}/server/panda/updateWorkerPilotStatus"
+}
+
 function main() {
   #
   # Fail early, fail often^W with useful diagnostics
@@ -651,6 +666,7 @@ function main() {
     err "==== wrapper stderr BEGIN ===="
     UUID=$(cat /proc/sys/kernel/random/uuid)
     apfmon_running
+    panda_update_worker_pilot_status
     log "${cricurl}"
     echo
     echo "---- Initial environment ----"
@@ -1023,6 +1039,8 @@ rarg=''
 shoalflag='false'
 localpyflag='false'
 tflag='false'
+#pandaurl='http://pandaserver.cern.ch:25085'
+pandaurl='https://pandaserver.cern.ch:25443'
 piloturl=''
 pilotversion='latest'
 pilotbase='pilot3'
@@ -1143,7 +1161,7 @@ pilotargs="$@"
 if [[ -f queuedata.json ]]; then
   cricurl="file://${PWD}/queuedata.json"
 else
-  cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${qarg}.all.json"
+  cricurl="${pandaurl}/cache/schedconfig/${qarg}.all.json"
 fi
 
 fabricmon="http://apfmon.lancs.ac.uk/api"
