@@ -1161,7 +1161,7 @@ pilotargs="$@"
 if [[ -f queuedata.json ]]; then
   cricurl="file://${PWD}/queuedata.json"
 else
-  cricurl="${pandaurl}/cache/schedconfig/${qarg}.all.json"
+  cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${qarg}.all.json"
 fi
 
 fabricmon="http://apfmon.lancs.ac.uk/api"
