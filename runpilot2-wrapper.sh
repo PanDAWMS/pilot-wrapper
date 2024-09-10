@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240905a-next
+VERSION=20240910a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -316,7 +316,14 @@ function pilot_cmd() {
 }
 
 function sing_cmd() {
-  cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS --env "APFCID=$APFCID" --env "APFFID=$APFFID" --env "HARVESTER_ID=$HARVESTER_ID" --env "HARVESTER_WORKER_ID=$HARVESTER_WORKER_ID" $IMAGE_PATH $0 $myargs"
+  cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS --env \"APFCID=$APFCID\" \
+                                              --env \"APFFID=$APFFID\" \
+                                              --env \"HARVESTER_ID=$HARVESTER_ID\" \
+                                              --env \"HARVESTER_WORKER_ID=$HARVESTER_WORKER_ID\" \
+                                              --env \"PANDA_AUTH_ORIGIN=$PANDA_AUTH_ORIGIN\" \
+                                              --env \"PANDA_AUTH_TOKEN=$PANDA_AUTH_TOKEN\" \
+                                              --env \"PANDA_AUTH_TOKEN_KEY=$PANDA_AUTH_TOKEN_KEY\" \
+                                              $IMAGE_PATH $0 $myargs"
   echo ${cmd}
 }
 
