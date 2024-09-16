@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240910a-next
+VERSION=20240913z-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -637,7 +637,7 @@ function supervise_pilot() {
 
 function panda_update_worker_pilot_status() {
   log "Sending panda_update_worker_pilot_status started"
-  curl -sS -o /dev/null --compressed --connect-timeout 10 --max-time 20 \
+  curl -sS -o /dev/null --insecure --compressed --connect-timeout 10 --max-time 20 \
        --capath "${ATLAS_LOCAL_ROOT_BASE:-${ATLAS_SW_BASE:-/cvmfs}/atlas.cern.ch/repo/ATLASLocalRootBase}/etc/grid-security-emi/certificates" \
        --cacert "${X509_USER_PROXY}" --cert "${X509_USER_PROXY}" --key "${X509_USER_PROXY}" \
        -H "User-Agent: pilot-wrapper/${VERSION} ($(uname -sm))" \
