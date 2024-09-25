@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240913a-next
+VERSION=20240925z-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -603,13 +603,17 @@ function supervise_pilot() {
   local counter=0
   while true; do
     ((counter++))
-    #err "supervise_pilot (15 min periods counter: ${counter})"
+    err "supervise_pilot (15 min periods counter: ${counter})"
     if [[ -f "pilotlog.txt" ]]; then
       CURRENT_TIME=$(date +%s)
       LAST_MODIFICATION=$(stat -c %Y "pilotlog.txt")
       TIME_DIFF=$(( CURRENT_TIME - LAST_MODIFICATION ))
 
+
       if [[ $TIME_DIFF -gt 3600 ]]; then
+        err "CURRENT_TIME: ${CURRENT_TIME}"
+        err "LAST_MODIFICATION: ${LAST_MODIFICATION}"
+        err "TIME_DIFF: ${TIME_DIFF}"
         echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.96.15/28527
         echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
         log "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
