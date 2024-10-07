@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20240925a-master
+VERSION=20241007a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -198,6 +198,7 @@ function setup_alrb() {
   if [[ ${iarg} == "RC" ]]; then
     log 'RC pilot requested, setting ALRB_rucioVersion=testing'
     export ALRB_rucioVersion=testing
+    export ALRB_pythonVersion=pilot-testing
   fi
   if [[ ${iarg} == "ALRB" ]]; then
     log 'ALRB pilot requested, setting ALRB env vars to testing'
