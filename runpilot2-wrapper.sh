@@ -196,7 +196,7 @@ function check_cvmfs() {
 function setup_alrb() {
   log 'NOTE: rucio,davix,xrootd setup now done in local site setup atlasLocalSetup.sh'
   if [[ ${iarg} == "RC" ]]; then
-    log 'RC pilot requested, setting ALRB_rucioVersion=testing'
+    log 'RC pilot requested, setting ALRB_rucioVersion=testing, ALRB_pythonVersion=pilot-testing'
     export ALRB_rucioVersion=testing
     export ALRB_pythonVersion=pilot-testing
   fi
