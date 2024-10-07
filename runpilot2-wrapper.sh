@@ -194,19 +194,21 @@ function check_cvmfs() {
 }
 
 function setup_alrb() {
+  export ATLAS_LOCAL_ROOT_BASE=${ATLAS_LOCAL_ROOT_BASE:-${ATLAS_SW_BASE}/atlas.cern.ch/repo/ATLASLocalRootBase}
+  export ALRB_userMenuFmtSkip=YES
+  export ALRB_noGridMW=${ALRB_noGridMW:-NO}
+
   log 'NOTE: rucio,davix,xrootd setup now done in local site setup atlasLocalSetup.sh'
   if [[ ${iarg} == "RC" ]]; then
-    log 'RC pilot requested, setting ALRB_rucioVersion=testing, ALRB_pythonVersion=pilot-testing'
+    log 'RC pilot requested, setting ALRB_rucioVersion=testing'
+    log 'RC pilot, source $ATLAS_LOCAL_ROOT_BASE/etc/pilot_testing.sh' 
+    source $ATLAS_LOCAL_ROOT_BASE/etc/pilot_testing.sh
     export ALRB_rucioVersion=testing
-    export ALRB_pythonVersion=pilot-testing
   fi
   if [[ ${iarg} == "ALRB" ]]; then
     log 'ALRB pilot requested, setting ALRB env vars to testing'
     export ALRB_adcTesting=YES
   fi
-  export ATLAS_LOCAL_ROOT_BASE=${ATLAS_LOCAL_ROOT_BASE:-${ATLAS_SW_BASE}/atlas.cern.ch/repo/ATLASLocalRootBase}
-  export ALRB_userMenuFmtSkip=YES
-  export ALRB_noGridMW=${ALRB_noGridMW:-NO}
 
   if [[ ${ALRB_noGridMW} == "YES" ]]; then
     log "Site has set ALRB_noGridMW=YES so use site native install rather than ALRB"
