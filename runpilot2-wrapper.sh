@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20241007a-next
+VERSION=20241009a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -185,8 +185,8 @@ function check_cvmfs() {
     if [ $(cat ${target} | wc -l) -ge 1 ]; then
       log "${target} is accessible"
     else
-      log "FATAL: ${target} not accessible or empty, pilot to handle"
-      err "FATAL: ${target} not accessible or empty, pilot to handle"
+      log "WARNING: ${target} not accessible or empty, pilot to handle"
+      err "WARNING: ${target} not accessible or empty, pilot to handle"
 #      apfmon_fault 64
 #      sortie 64
     fi
