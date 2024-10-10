@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20241009a-next
+VERSION=20241010a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -538,6 +538,11 @@ function sortie() {
 function get_cricopts() {
   container_opts=$(curl --silent $cricurl | grep container_options | grep -v null)
   if [[ $? -eq 0 ]]; then
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+      log "FATAL: failed to retrieve CRIC data from $cricurl"
+      err "FATAL: failed to retrieve CRIC data from $cricurl"
+      return 1
+    fi
     cricopts=$(echo $container_opts | awk -F"\"" '{print $4}')
     echo ${cricopts}
     return 0
@@ -704,7 +709,8 @@ function main() {
     if [[ $? -eq 0 ]]; then
       log "CRIC container_options: $cric_opts"
     else
-      log "ERROR: failed to get CRIC container_options"
+      log "FATAL: failed to get CRIC container_options"
+      err "FATAL: failed to get CRIC container_options"
       apfmon_fault 1
       sortie 1
     fi
