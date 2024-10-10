@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20241007a-master
+VERSION=20241010a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -201,8 +201,8 @@ function setup_alrb() {
   log 'NOTE: rucio,davix,xrootd setup now done in local site setup atlasLocalSetup.sh'
   if [[ ${iarg} == "RC" ]]; then
     log 'RC pilot requested, setting ALRB_rucioVersion=testing'
-    log 'RC pilot, source $ATLAS_LOCAL_ROOT_BASE/etc/pilot_testing.sh' 
-    source $ATLAS_LOCAL_ROOT_BASE/etc/pilot_testing.sh
+    log 'RC pilot, source $ATLAS_LOCAL_ROOT_BASE/etc/ADCPilotTesting.sh' 
+    source $ATLAS_LOCAL_ROOT_BASE/etc/ADCPilotTesting.sh
     export ALRB_rucioVersion=testing
   fi
   if [[ ${iarg} == "ALRB" ]]; then
