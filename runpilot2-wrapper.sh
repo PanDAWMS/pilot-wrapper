@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20241010a-master
+VERSION=20241023a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -185,8 +185,8 @@ function check_cvmfs() {
     if [ $(cat ${target} | wc -l) -ge 1 ]; then
       log "${target} is accessible"
     else
-      log "FATAL: ${target} not accessible or empty, pilot to handle"
-      err "FATAL: ${target} not accessible or empty, pilot to handle"
+      log "WARNING: ${target} not accessible or empty, pilot to handle"
+      err "WARNING: ${target} not accessible or empty, pilot to handle"
 #      apfmon_fault 64
 #      sortie 64
     fi
@@ -538,6 +538,11 @@ function sortie() {
 function get_cricopts() {
   container_opts=$(curl --silent $cricurl | grep container_options | grep -v null)
   if [[ $? -eq 0 ]]; then
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+      log "FATAL: failed to retrieve CRIC data from $cricurl"
+      err "FATAL: failed to retrieve CRIC data from $cricurl"
+      return 1
+    fi
     cricopts=$(echo $container_opts | awk -F"\"" '{print $4}')
     echo ${cricopts}
     return 0
@@ -623,11 +628,13 @@ function supervise_pilot() {
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.96.15/28527
         echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
         kill -s 2 $PILOT_PID > /dev/null 2>&1
+        touch wrapper_sigint_$PILOT_PID
         sleep 180
         if kill -s 0 $PILOT_PID > /dev/null 2>&1; then
           log "The pilot process ($PILOT_PID) is still running after 3m. Sending SIGKILL (9)."
           err "The pilot process ($PILOT_PID) is still running after 3m. Sending SIGKILL (9)."
           kill -s 9 $PILOT_PID
+          touch wrapper_sigkill_$PILOT_PID
         fi
         exit 2
       fi
@@ -704,7 +711,8 @@ function main() {
     if [[ $? -eq 0 ]]; then
       log "CRIC container_options: $cric_opts"
     else
-      log "ERROR: failed to get CRIC container_options"
+      log "FATAL: failed to get CRIC container_options"
+      err "FATAL: failed to get CRIC container_options"
       apfmon_fault 1
       sortie 1
     fi
@@ -994,13 +1002,21 @@ function main() {
     apfmon_fault 2
     sortie 2
   elif [[ $pilotrc -eq 143 ]]; then
-    # killed by SIGTERM, presumable LRMS
+    # killed by SIGTERM, presumably LRMS
     apfmon_fault 1
     sortie 1
   elif [[ $pilotrc -eq 137 ]]; then
-    # killed by SIGKILL
-    apfmon_fault 2
-    sortie 2
+    if [[ -f "wrapper_sigkill_$PILOTPID" ]]; then
+      err "Found: wrapper_sigkill_$PILOTPID, so killed by wrapper"
+      # killed by wrapper SIGKILL
+      apfmon_fault 2
+      sortie 2
+    else
+      # killed by some other SIGKILL, presumably LRMS
+      err "Not found: wrapper_sigkill_$PILOTPID, so not killed by wrapper"
+      apfmon_fault 1
+      sortie 1
+    fi
   elif [[ $pilotrc -eq 64 ]]; then
     apfmon_fault 64
     sortie 64
