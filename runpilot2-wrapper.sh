@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20241023a-next
+VERSION=20241031z-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -499,6 +499,11 @@ function trap_handler() {
 }
 
 function sortie() {
+  # Currently Harvester interprets exit-codes as following:
+  #
+  #         1: "wrapper fault",
+  #         2: "wrapper killed stuck pilot",
+  #        64: "wrapper got cvmfs repos issue",
   ec=$1
   if [[ $ec -eq 0 ]]; then
     state=wrapperexiting
