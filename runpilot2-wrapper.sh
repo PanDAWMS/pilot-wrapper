@@ -828,8 +828,8 @@ function main() {
 
   get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
-    log "FATAL: failed to get pilot code"
-    err "FATAL: failed to get pilot code"
+    log "FATAL: failed to get pilot code, from node: $(hostname -f)"
+    err "FATAL: failed to get pilot code, from node: $(hostname -f)"
     apfmon_fault 64
     sortie 64
   fi
