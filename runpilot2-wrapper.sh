@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20241023a-master
+VERSION=20241111z-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -110,6 +110,7 @@ function setup_python3() {
     export ALRB_LOCAL_PY3="YES"
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
+      log "FATAL: failed to source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh"
       err "FATAL: failed to source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh"
       apfmon_fault 64
       sortie 64
@@ -436,7 +437,7 @@ function muted() {
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
   echo -n "running 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "running 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
+  echo -n "running 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.96.15/28527
   resource=${GRID_GLOBAL_JOBHOST:-}
   out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
              -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
@@ -454,13 +455,13 @@ function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "${state} ec=$ec, duration=${duration}"
   echo -n "exiting ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "exiting ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
+  echo -n "exiting ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.96.15/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
              -d ids="${pandaids}" -d duration=$2 \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
-    log $out
+    :
   else
     err "WARNING: wrapper monitor ${UUID}"
   fi
@@ -469,12 +470,12 @@ function apfmon_exiting() {
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
   echo -n "fault ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "fault ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
+  echo -n "fault ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.96.15/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
-    log $out
+    : 
   else
     err "WARNING: wrapper monitor ${UUID}"
   fi
@@ -499,6 +500,10 @@ function trap_handler() {
 }
 
 function sortie() {
+  # Currently Harvester interprets exit-codes as following:
+  #         1: "wrapper fault",
+  #         2: "wrapper killed stuck pilot",
+  #        64: "wrapper got cvmfs repos issue",
   ec=$1
   if [[ $ec -eq 0 ]]; then
     state=wrapperexiting
@@ -526,11 +531,11 @@ function sortie() {
       log "Test setup, not cleaning"
   fi
 
-  log "==== wrapper stdout END ===="
-  err "==== wrapper stderr END ===="
-
   duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
+
+  log "==== wrapper stdout END ===="
+  err "==== wrapper stderr END ===="
 
   exit $ec
 }
@@ -828,8 +833,8 @@ function main() {
 
   get_pilot ${piloturl}
   if [[ $? -ne 0 ]]; then
-    log "FATAL: failed to get pilot code"
-    err "FATAL: failed to get pilot code"
+    log "FATAL: failed to get pilot code, from node: $(hostname -f)"
+    err "FATAL: failed to get pilot code, from node: $(hostname -f)"
     apfmon_fault 64
     sortie 64
   fi
