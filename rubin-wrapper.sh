@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20241128a-rubin
+VERSION=20241203a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -87,8 +87,10 @@ function setup_lsst() {
     log 'cat ${DAF_BUTLER_REPOSITORY_INDEX}'
     cat ${DAF_BUTLER_REPOSITORY_INDEX}
   else
-    log 'WARNING: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
-    err 'WARNING: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
+    log 'FATAL: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
+    err 'FATAL: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
+    apfmon_fault 1
+    sortie 1
   fi
 }
 
