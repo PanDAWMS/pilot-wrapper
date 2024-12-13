@@ -279,43 +279,6 @@ function sortie() {
   exit $ec
 }
 
-function get_cricopts() {
-  container_opts=$(curl --silent $cricurl | grep container_options | grep -v null)
-  if [[ $? -eq 0 ]]; then
-    cricopts=$(echo $container_opts | awk -F"\"" '{print $4}')
-    echo ${cricopts}
-    return 0
-  else
-    return 1
-  fi
-}
-
-function get_catchall() {
-  local result
-  local content
-  result=$(curl --silent $cricurl | grep catchall | grep -v null)
-  if [[ $? -eq 0 ]]; then
-    content=$(echo $result | awk -F"\"" '{print $4}')
-    echo ${content}
-    return 0
-  else
-    return 1
-  fi
-}
-
-function get_environ() {
-  local result
-  local content
-  result=$(curl --silent $cricurl | grep environ | grep -v null)
-  if [[ $? -eq 0 ]]; then
-    content=$(echo $result | awk -F"\"" '{print $4}')
-    echo ${content}
-    return 0
-  else
-    return 1
-  fi
-}
-
 function main() {
   #
   # Fail early, fail often^W with useful diagnostics
@@ -337,7 +300,6 @@ function main() {
   err "==== wrapper stderr BEGIN ===="
   UUID=$(cat /proc/sys/kernel/random/uuid)
   apfmon_running
-  log "${cricurl}"
   echo
 
   echo "---- Host details ----"
@@ -426,21 +388,6 @@ function main() {
   ulimit -a
   echo
   
-  echo "--- Bespoke environment from CRIC ---"
-  result=$(get_environ)
-  if [[ $? -eq 0 ]]; then
-    if [[ -z ${result} ]]; then
-      log 'CRIC environ field: <empty>'
-    else
-      log 'CRIC environ content'
-      log "export ${result}"
-      export ${result}
-    fi
-  else
-    log 'No content found in CRIC environ'
-  fi
-  echo
-
   echo "---- Setup LSST environ ----"
   setup_lsst
   echo
@@ -449,16 +396,6 @@ function main() {
   check_python3
   echo 
 
-   echo "---- Proxy Information ----"
-  if [[ ${tflag} == 'true' ]]; then
-    log 'Skipping proxy checks due to -t flag'
-  else
-    :
-    # TODO sort jar issue
-    # check_proxy
-  fi
-  echo
-  
   echo "---- Job Environment (redacted) ----"
   printenv | grep -v GOOGLE_APPLICATION_CREDENTIALS | grep -v LSST_DB_AUTH
   echo
@@ -481,8 +418,6 @@ function main() {
   log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
   
-  log "Temp override of pilotbase to hardcoded pilot3"
-  log "https://github.com/PanDAWMS/pilot3/issues/54"
   pilotbase=pilot3
   if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
     # max 30 pandaids
@@ -524,7 +459,6 @@ function main() {
 function usage () {
   echo "Usage: $0 -q <queue> -r <resource> -s <site> [<pilot_args>]"
   echo
-  echo "  --container (Standalone container), file to source for release setup "
   echo "  -i,   pilot type, default PR"
   echo "  -j,   job type prodsourcelabel, default 'managed'"
   echo "  -q,   panda queue"
@@ -635,8 +569,7 @@ if [ -z "${qarg}" ]; then usage; exit 1; fi
 pilotargs="$@"
 
 cricurl="http://pandaserver-doma.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
-fabricmon="http://apfmon.lancs.ac.uk/api"
 if [ -z ${APFMON} ]; then
-  APFMON=${fabricmon}
+  RTMON="http://rtmon.lancs.ac.uk/api"
 fi
 main "$myargs"
