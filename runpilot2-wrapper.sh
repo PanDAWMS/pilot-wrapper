@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20241210a-next
+VERSION=20250214a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -668,6 +668,36 @@ function panda_update_worker_pilot_status() {
        "${pandaurl}/server/panda/updateWorkerPilotStatus"
 }
 
+function hostinfo() {
+  echo "---- Host details ----"
+  echo "hostname:" $(hostname -f)
+  echo "pwd:" $(pwd)
+  echo "whoami:" $(whoami)
+  echo "id:" $(id)
+  echo "getopt:" $(getopt -V 2>/dev/null)
+  echo "jq:" $(jq --version 2>/dev/null)
+  if [[ -r /proc/version ]]; then
+    echo "/proc/version:" $(cat /proc/version)
+  fi
+  echo "lsb_release:" $(lsb_release -d 2>/dev/null)
+  echo "SINGULARITY_ENVIRONMENT:" ${SINGULARITY_ENVIRONMENT}
+  echo BASHPID: ${BASHPID}
+  myargs=$@
+  echo "wrapper call: $0 $myargs"
+  cpuinfo_flags="flags: EMPTY"
+  if [ -f /proc/cpuinfo ]; then
+    cpuinfo_flags="$(grep '^flags' /proc/cpuinfo 2>/dev/null | sort -u 2>/dev/null)"
+    if [ -z "${cpuinfo_flags}" ]; then
+      cpuinfo_flags="flags: EMPTY"
+    fi
+  else
+    cpuinfo_flags="flags: EMPTY"
+  fi
+  echo "Flags from /proc/cpuinfo:"
+  echo ${cpuinfo_flags}
+  echo
+}
+
 function main() {
   #
   # Fail early, fail often^W with useful diagnostics
@@ -690,6 +720,7 @@ function main() {
     log "==== wrapper stdout BEGIN ===="
     err "==== wrapper stderr BEGIN ===="
     UUID=$(cat /proc/sys/kernel/random/uuid)
+    hostinfo
     apfmon_running
     panda_update_worker_pilot_status
     log "${cricurl}"
@@ -765,38 +796,6 @@ function main() {
     df -h
   fi
   echo
-
-  echo "---- Host details ----"
-  echo "hostname:" $(hostname -f)
-  echo "pwd:" $(pwd)
-  echo "whoami:" $(whoami)
-  echo "id:" $(id)
-  echo "getopt:" $(getopt -V 2>/dev/null)
-  echo "jq:" $(jq --version 2>/dev/null)
-  if [[ -r /proc/version ]]; then
-    echo "/proc/version:" $(cat /proc/version)
-  fi
-  echo "lsb_release:" $(lsb_release -d 2>/dev/null)
-  echo "SINGULARITY_ENVIRONMENT:" ${SINGULARITY_ENVIRONMENT}
-  echo BASHPID: ${BASHPID}
-
-  myargs=$@
-  echo "wrapper call: $0 $myargs"
-
-  cpuinfo_flags="flags: EMPTY"
-  if [ -f /proc/cpuinfo ]; then
-    cpuinfo_flags="$(grep '^flags' /proc/cpuinfo 2>/dev/null | sort -u 2>/dev/null)"
-    if [ -z "${cpuinfo_flags}" ]; then
-      cpuinfo_flags="flags: EMPTY"
-    fi
-  else
-    cpuinfo_flags="flags: EMPTY"
-  fi
-
-  echo "Flags from /proc/cpuinfo:"
-  echo ${cpuinfo_flags}
-  echo
-
 
   echo "---- Enter workdir ----"
   workdir=$(get_workdir)
