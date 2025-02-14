@@ -57,7 +57,7 @@ function check_proxy() {
 }
 
 function check_cvmfs() {
-  local VO_LSST_SW_DIR=/cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
+  local VO_LSST_SW_DIR=/cvmfs/sw.lsst.eu/almalinux-x86_64/lsst_distrib
   if [[ -d ${VO_LSST_SW_DIR} ]]; then
     log "Found LSST software repository: ${VO_LSST_SW_DIR}"
   else
@@ -71,9 +71,9 @@ function check_cvmfs() {
 
 function get_pandaenvdir() {
   if [[ -z "$pandaenvtag" ]]; then
-    echo "$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v* | head -1)"
+    echo "$(ls -td /cvmfs/sw.lsst.eu/almalinux-x86_64/panda_env/v* | head -1)"
   else
-    echo "$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/${pandaenvtag}* | head -1)"
+    echo "$(ls -td /cvmfs/sw.lsst.eu/almalinux-x86_64/panda_env/${pandaenvtag}* | head -1)"
   fi
 }
 
