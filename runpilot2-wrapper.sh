@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250214a-next
+VERSION=20250214a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -669,6 +669,7 @@ function panda_update_worker_pilot_status() {
 }
 
 function hostinfo() {
+  echo
   echo "---- Host details ----"
   echo "hostname:" $(hostname -f)
   echo "pwd:" $(pwd)
