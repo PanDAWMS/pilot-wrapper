@@ -721,7 +721,36 @@ function main() {
     log "==== wrapper stdout BEGIN ===="
     err "==== wrapper stderr BEGIN ===="
     UUID=$(cat /proc/sys/kernel/random/uuid)
-    hostinfo
+    #hostinfo
+    echo
+    echo "---- Host details ----"
+    echo "hostname:" $(hostname -f)
+    echo "pwd:" $(pwd)
+    echo "whoami:" $(whoami)
+    echo "id:" $(id)
+    echo "getopt:" $(getopt -V 2>/dev/null)
+    echo "jq:" $(jq --version 2>/dev/null)
+    if [[ -r /proc/version ]]; then
+      echo "/proc/version:" $(cat /proc/version)
+    fi
+    echo "lsb_release:" $(lsb_release -d 2>/dev/null)
+    echo "SINGULARITY_ENVIRONMENT:" ${SINGULARITY_ENVIRONMENT}
+    echo BASHPID: ${BASHPID}
+    myargs=$@
+    echo "wrapper call: $0 $myargs"
+    cpuinfo_flags="flags: EMPTY"
+    if [ -f /proc/cpuinfo ]; then
+      cpuinfo_flags="$(grep '^flags' /proc/cpuinfo 2>/dev/null | sort -u 2>/dev/null)"
+      if [ -z "${cpuinfo_flags}" ]; then
+        cpuinfo_flags="flags: EMPTY"
+      fi
+    else
+      cpuinfo_flags="flags: EMPTY"
+    fi
+    echo "Flags from /proc/cpuinfo:"
+    echo ${cpuinfo_flags}
+    echo
+    #
     apfmon_running
     panda_update_worker_pilot_status
     log "${cricurl}"
