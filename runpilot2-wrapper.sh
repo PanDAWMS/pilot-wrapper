@@ -583,11 +583,11 @@ function get_environ() {
 }
 
 function check_apptainer() {
-  BINARY_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/sw/apptainer/`uname -m`-el7/current/bin/apptainer"
+  BINARY_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/sw/apptainer/`uname -m`-el9/current/bin/apptainer"
   if [[ ${alma9flag} == 'true' ]]; then
     IMAGE_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-almalinux9"
   else
-    IMAGE_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-centos7"
+    IMAGE_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/fs/singularity/`uname -m`-almalinux9"
   fi
   SINGULARITY_OPTIONS="$(get_cricopts) -B ${ATLAS_SW_BASE}:/cvmfs -B $PWD --cleanenv"
   out=$(${BINARY_PATH} --version 2>/dev/null)
