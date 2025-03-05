@@ -1040,14 +1040,14 @@ function main() {
     apfmon_fault 1
     sortie 1
   elif [[ $pilotrc -eq 137 ]]; then
-    if [[ -f "wrapper_sigkill_$PILOTPID" ]]; then
-      err "Found: wrapper_sigkill_$PILOTPID, so killed by wrapper"
+    if [[ -f "wrapper_sigkill_$pilotpid" ]]; then
+      err "Found: wrapper_sigkill_$pilotpid, so killed by wrapper"
       # killed by wrapper SIGKILL
       apfmon_fault 2
       sortie 2
     else
       # killed by some other SIGKILL, presumably LRMS
-      err "Not found: wrapper_sigkill_$PILOTPID, so not killed by wrapper"
+      err "Not found: wrapper_sigkill_$pilotpid, so not killed by wrapper"
       apfmon_fault 1
       sortie 1
     fi
