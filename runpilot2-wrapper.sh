@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250305a-next
+VERSION=20250317a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -436,8 +436,15 @@ function muted() {
 
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "running 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "running 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.96.15/28527
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         running 0 \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.96.15/28527
   resource=${GRID_GLOBAL_JOBHOST:-}
   out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
              -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
@@ -454,8 +461,16 @@ function apfmon_running() {
 function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "${state} ec=$ec, duration=${duration}"
-  echo -n "exiting ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "exiting ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.96.15/28527
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         exiting \
+         ${duration} \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.96.15/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
              -d ids="${pandaids}" -d duration=$2 \
@@ -469,8 +484,16 @@ function apfmon_exiting() {
 
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "fault ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "fault ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.96.15/28527
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         fault \
+         ${duration} \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.96.15/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
@@ -757,6 +780,13 @@ function main() {
     echo
     echo "---- Initial environment ----"
     printenv
+    if [[ -n "${GRID_GLOBAL_JOBHOST}" ]]; then
+      # ARCCE
+      export APFCE=${GRID_GLOBAL_JOBHOST}
+    else [[ -n "${SCHEDD_NAME}" ]]; then
+      # HTCONDORCE
+      export APFCE=${SCHEDD_NAME}
+    fi
     echo
     echo "---- PWD content ----"
     pwd
