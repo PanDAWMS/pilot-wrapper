@@ -440,6 +440,7 @@ function muted() {
 
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
+  log "APFCE: ${APFCE}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
          running 0 \
@@ -463,6 +464,7 @@ function apfmon_running() {
 
 function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
+  log "APFCE: ${APFCE}"
   duration=$(( $(date +%s) - ${starttime} ))
   log "${state} ec=$ec, duration=${duration}"
   echo -n "${VERSION} \
@@ -488,6 +490,7 @@ function apfmon_exiting() {
 
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
+  log "APFCE: ${APFCE}"
   duration=$(( $(date +%s) - ${starttime} ))
   log "${state} ec=$ec, duration=${duration}"
   echo -n "${VERSION} \
