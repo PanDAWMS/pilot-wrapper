@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250317a-next
+VERSION=20250318a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -322,6 +322,9 @@ function pilot_cmd() {
 function sing_cmd() {
   cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS --env \"APFCID=$APFCID\" \
                                               --env \"APFFID=$APFFID\" \
+#                                              --env \"APFCE=$APFCE\" \
+                                              --env \"GRID_GLOBAL_JOBHOST=$GRID_GLOBAL_JOBHOST\" \
+                                              --env \"SCHEDD_NAME=$SCHEDD_NAME\" \
                                               --env \"HARVESTER_ID=$HARVESTER_ID\" \
                                               --env \"HARVESTER_WORKER_ID=$HARVESTER_WORKER_ID\" \
                                               --env \"PANDA_AUTH_ORIGIN=$PANDA_AUTH_ORIGIN\" \
@@ -332,6 +335,7 @@ function sing_cmd() {
 }
 
 function sing_env() {
+  # preserve these env var in the apptainer environment
   export APPTAINERENV_X509_USER_PROXY=${X509_USER_PROXY}
   if [[ -n "${ATLAS_LOCAL_AREA}" ]]; then
     export APPTAINERENV_ATLAS_LOCAL_AREA=${ATLAS_LOCAL_AREA}
@@ -445,7 +449,6 @@ function apfmon_running() {
          ${HARVESTER_WORKER_ID:-unknown} \
          ${GTAG:-unknown}" \
          > /dev/udp/148.88.96.15/28527
-  resource=${GRID_GLOBAL_JOBHOST:-}
   out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
              -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
              -d gtag=${GTAG} -d resource=${resource} \
@@ -460,6 +463,7 @@ function apfmon_running() {
 
 function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
+  duration=$(( $(date +%s) - ${starttime} ))
   log "${state} ec=$ec, duration=${duration}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
@@ -484,6 +488,8 @@ function apfmon_exiting() {
 
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
+  duration=$(( $(date +%s) - ${starttime} ))
+  log "${state} ec=$ec, duration=${duration}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
          fault \
@@ -534,7 +540,6 @@ function sortie() {
     state=wrapperfault
   fi
 
-  
   if [[ -n "${SUPERVISOR_PID}" ]]; then
     CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
   else
@@ -554,7 +559,6 @@ function sortie() {
       log "Test setup, not cleaning"
   fi
 
-  duration=$(( $(date +%s) - ${starttime} ))
   apfmon_exiting ${pilotrc} ${duration}
 
   log "==== wrapper stdout END ===="
@@ -780,13 +784,6 @@ function main() {
     echo
     echo "---- Initial environment ----"
     printenv
-    if [[ -n "${GRID_GLOBAL_JOBHOST}" ]]; then
-      # ARCCE
-      export APFCE=${GRID_GLOBAL_JOBHOST}
-    else [[ -n "${SCHEDD_NAME}" ]]; then
-      # HTCONDORCE
-      export APFCE=${SCHEDD_NAME}
-    fi
     echo
     echo "---- PWD content ----"
     pwd
@@ -939,6 +936,7 @@ function main() {
   if [[ ${containerflag} == 'true' ]]; then
     log 'Skipping Setup ALRB due to --container flag'
   else
+    :
     setup_alrb
   fi
   echo
@@ -1260,5 +1258,14 @@ fi
 fabricmon="http://apfmon.lancs.ac.uk/api"
 if [ -z ${APFMON} ]; then
   APFMON=${fabricmon}
+fi
+if [[ -n "${GRID_GLOBAL_JOBHOST}" ]]; then
+  # ARCCE
+  declare -g APFCE="${GRID_GLOBAL_JOBHOST}"
+elif [[ -n "${SCHEDD_NAME}" ]]; then
+  # HTCONDORCE
+  declare -g APFCE="${SCHEDD_NAME}"
+else
+  declare -g APFCE="mainnull"
 fi
 main "$myargs"
