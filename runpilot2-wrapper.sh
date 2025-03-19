@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250305a-master
+VERSION=20250319a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -322,6 +322,9 @@ function pilot_cmd() {
 function sing_cmd() {
   cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS --env \"APFCID=$APFCID\" \
                                               --env \"APFFID=$APFFID\" \
+#                                              --env \"APFCE=$APFCE\" \
+                                              --env \"GRID_GLOBAL_JOBHOST=$GRID_GLOBAL_JOBHOST\" \
+                                              --env \"SCHEDD_NAME=$SCHEDD_NAME\" \
                                               --env \"HARVESTER_ID=$HARVESTER_ID\" \
                                               --env \"HARVESTER_WORKER_ID=$HARVESTER_WORKER_ID\" \
                                               --env \"PANDA_AUTH_ORIGIN=$PANDA_AUTH_ORIGIN\" \
@@ -332,6 +335,7 @@ function sing_cmd() {
 }
 
 function sing_env() {
+  # preserve these env var in the apptainer environment
   export APPTAINERENV_X509_USER_PROXY=${X509_USER_PROXY}
   if [[ -n "${ATLAS_LOCAL_AREA}" ]]; then
     export APPTAINERENV_ATLAS_LOCAL_AREA=${ATLAS_LOCAL_AREA}
@@ -436,9 +440,16 @@ function muted() {
 
 function apfmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "running 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "running 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.96.15/28527
-  resource=${GRID_GLOBAL_JOBHOST:-}
+  log "APFCE: ${APFCE}"
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         running 0 \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.96.15/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
              -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
              -d gtag=${GTAG} -d resource=${resource} \
@@ -453,12 +464,22 @@ function apfmon_running() {
 
 function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
+  log "APFCE: ${APFCE}"
+  duration=$(( $(date +%s) - ${starttime} ))
   log "${state} ec=$ec, duration=${duration}"
-  echo -n "exiting ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "exiting ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.96.15/28527
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         exiting \
+         ${duration} \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.96.15/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
-             -d ids="${pandaids}" -d duration=$2 \
+             -d ids="${pandaids}" -d duration=${duration} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     :
@@ -469,8 +490,19 @@ function apfmon_exiting() {
 
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "fault ${duration} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.67.14/28527
-  echo -n "fault ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.96.15/28527
+  log "APFCE: ${APFCE}"
+  duration=$(( $(date +%s) - ${starttime} ))
+  log "${state} ec=$ec, duration=${duration}"
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         fault \
+         ${duration} \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.96.15/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
@@ -511,7 +543,6 @@ function sortie() {
     state=wrapperfault
   fi
 
-  
   if [[ -n "${SUPERVISOR_PID}" ]]; then
     CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
   else
@@ -531,8 +562,7 @@ function sortie() {
       log "Test setup, not cleaning"
   fi
 
-  duration=$(( $(date +%s) - ${starttime} ))
-  apfmon_exiting ${pilotrc} ${duration}
+  apfmon_exiting ${ec}
 
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
@@ -909,6 +939,7 @@ function main() {
   if [[ ${containerflag} == 'true' ]]; then
     log 'Skipping Setup ALRB due to --container flag'
   else
+    :
     setup_alrb
   fi
   echo
@@ -1054,6 +1085,16 @@ function main() {
   elif [[ $pilotrc -eq 64 ]]; then
     apfmon_fault 64
     sortie 64
+  elif [[ $pilotrc -eq 80 ]]; then
+    log "WARNING: pilot exitcode=80, proxy lifetime too short"
+    err "WARNING: pilot exitcode=80, proxy lifetime too short"
+    apfmon_fault 80
+    sortie 80
+  elif [[ $pilotrc -ne 0 ]]; then
+    log "WARNING: pilot exitcode non-zero"
+    err "WARNING: pilot exitcode non-zero"
+    apfmon_fault $pilotrc
+    sortie $pilotrc
   fi
 
   sortie 0
@@ -1230,5 +1271,14 @@ fi
 fabricmon="http://apfmon.lancs.ac.uk/api"
 if [ -z ${APFMON} ]; then
   APFMON=${fabricmon}
+fi
+if [[ -n "${GRID_GLOBAL_JOBHOST}" ]]; then
+  # ARCCE
+  declare -g APFCE="${GRID_GLOBAL_JOBHOST}"
+elif [[ -n "${SCHEDD_NAME}" ]]; then
+  # HTCONDORCE
+  declare -g APFCE="${SCHEDD_NAME}"
+else
+  declare -g APFCE="unknown"
 fi
 main "$myargs"
