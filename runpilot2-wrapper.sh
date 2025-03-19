@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250318a-next
+VERSION=20250319b-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -479,7 +479,7 @@ function apfmon_exiting() {
          > /dev/udp/148.88.96.15/28527
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
-             -d ids="${pandaids}" -d duration=$2 \
+             -d ids="${pandaids}" -d duration=${duration} \
              ${APFMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     :
@@ -562,7 +562,7 @@ function sortie() {
       log "Test setup, not cleaning"
   fi
 
-  apfmon_exiting ${pilotrc} ${duration}
+  apfmon_exiting ${ec}
 
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
@@ -1085,6 +1085,16 @@ function main() {
   elif [[ $pilotrc -eq 64 ]]; then
     apfmon_fault 64
     sortie 64
+  elif [[ $pilotrc -eq 80 ]]; then
+    log "WARNING: pilot exitcode=80, proxy lifetime too short"
+    err "WARNING: pilot exitcode=80, proxy lifetime too short"
+    apfmon_fault 80
+    sortie 80
+  elif [[ $pilotrc -ne 0 ]]; then
+    log "WARNING: pilot exitcode non-zero"
+    err "WARNING: pilot exitcode non-zero"
+    apfmon_fault $pilotrc
+    sortie $pilotrc
   fi
 
   sortie 0
@@ -1269,6 +1279,6 @@ elif [[ -n "${SCHEDD_NAME}" ]]; then
   # HTCONDORCE
   declare -g APFCE="${SCHEDD_NAME}"
 else
-  declare -g APFCE="mainnull"
+  declare -g APFCE="unknown"
 fi
 main "$myargs"
