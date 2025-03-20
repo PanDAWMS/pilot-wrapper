@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250319b-next
+VERSION=20250320a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -1278,6 +1278,9 @@ if [[ -n "${GRID_GLOBAL_JOBHOST}" ]]; then
 elif [[ -n "${SCHEDD_NAME}" ]]; then
   # HTCONDORCE
   declare -g APFCE="${SCHEDD_NAME}"
+elif [[ -n "${CONDORCE_COLLECTOR_HOST}" ]]; then
+  # HTCONDORCE
+  declare -g APFCE="${CONDORCE_COLLECTOR_HOST%:*}"
 else
   declare -g APFCE="unknown"
 fi
