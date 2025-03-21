@@ -322,7 +322,6 @@ function pilot_cmd() {
 function sing_cmd() {
   cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS --env \"APFCID=$APFCID\" \
                                               --env \"APFFID=$APFFID\" \
-#                                              --env \"APFCE=$APFCE\" \
                                               --env \"GRID_GLOBAL_JOBHOST=$GRID_GLOBAL_JOBHOST\" \
                                               --env \"SCHEDD_NAME=$SCHEDD_NAME\" \
                                               --env \"HARVESTER_ID=$HARVESTER_ID\" \
