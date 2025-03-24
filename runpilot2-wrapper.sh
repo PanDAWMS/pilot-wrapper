@@ -465,7 +465,7 @@ function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "APFCE: ${APFCE}"
   duration=$(( $(date +%s) - ${starttime} ))
-  log "${state} ec=$ec, duration=${duration}"
+  log "exiting ec=$1, duration=${duration}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
          exiting \
@@ -491,7 +491,7 @@ function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "APFCE: ${APFCE}"
   duration=$(( $(date +%s) - ${starttime} ))
-  log "${state} ec=$ec, duration=${duration}"
+  log "${state} ec=$1, duration=${duration}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
          fault \
@@ -1090,8 +1090,8 @@ function main() {
     apfmon_fault 80
     sortie 80
   elif [[ $pilotrc -ne 0 ]]; then
-    log "WARNING: pilot exitcode non-zero"
-    err "WARNING: pilot exitcode non-zero"
+    log "WARNING: pilot exitcode non-zero: ${pilotrc}"
+    err "WARNING: pilot exitcode non-zero: ${pilotrc}"
     apfmon_fault $pilotrc
     sortie $pilotrc
   fi
