@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20241203a-rubin
+VERSION=20250328z-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -202,15 +202,24 @@ function muted() {
   log "apfmon messages muted"
 }
 
-function apfmon_running() {
+function rtmon_running() {
   [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "running 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.72.40/15778
+  log "APFCE: ${APFCE}"
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         running 0 \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.97.108/15778
   resource=${GRID_GLOBAL_JOBHOST:-}
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
+  out=$(curl -ksS --connect-timeout 5 --max-time 10 -d uuid=${UUID} \
              -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
              -d gtag=${GTAG} -d resource=${resource} \
              -d hid=${HARVESTER_ID} -d hwid=${HARVESTER_WORKER_ID} \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
+             ${RTMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     log $out
   else
@@ -220,12 +229,21 @@ function apfmon_running() {
 
 function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
+  duration=$(( $(date +%s) - ${starttime} ))
   log "${state} ec=$ec, duration=${duration}"
-  echo -n "exiting ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.72.40/15778
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         exiting ${duration} \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.97.108/15778
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
              -d ids="${pandaids}" -d duration=$2 \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
+             ${RTMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     log $out
   else
@@ -235,10 +253,18 @@ function apfmon_exiting() {
 
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "fault ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.72.40/15778
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         fault ${duration} \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.97.108/15778
   out=$(curl -ksS --connect-timeout 10 --max-time 20 \
              -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
+             ${RTMON}/jobs/${APFFID}:${APFCID})
   if [[ $? -eq 0 ]]; then
     log $out
   else
@@ -273,7 +299,7 @@ function sortie() {
   if [[ ${mute} == 'true' ]]; then
     muted
   else
-    echo -n "${state} ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.72.40/15778
+    echo "PALudp"
   fi
 
   exit $ec
@@ -299,7 +325,7 @@ function main() {
   log "==== wrapper stdout BEGIN ===="
   err "==== wrapper stderr BEGIN ===="
   UUID=$(cat /proc/sys/kernel/random/uuid)
-  apfmon_running
+  rtmon_running
   echo
 
   echo "---- Host details ----"
@@ -417,7 +443,7 @@ function main() {
   log "==== wrapper stdout RESUME ===="
   log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
-  
+
   pilotbase=pilot3
   if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
     # max 30 pandaids
@@ -429,9 +455,7 @@ function main() {
     pandaids=''
   fi
 
-  duration=$(( $(date +%s) - ${starttime} ))
-  apfmon_exiting ${pilotrc} ${duration}
-  
+  apfmon_exiting ${pilotrc}
 
   if [[ ${piloturl} != 'local' ]]; then
       log "cleanup: rm -rf $workdir"
@@ -444,9 +468,6 @@ function main() {
   if [[ -n "${LSST_LOCAL_EPILOG}" ]]; then
     if [[ -f "${LSST_LOCAL_EPILOG}" ]]; then
       log "Sourcing local site epilog: ${LSST_LOCAL_EPILOG}"
-      log "Content of: ${LSST_LOCAL_EPILOG}"
-      cat ${LSST_LOCAL_EPILOG}
-      echo
       source ${LSST_LOCAL_EPILOG}
     else
       log "WARNING: epilog script not found, expecting LSST_LOCAL_EPILOG=${LSST_LOCAL_EPILOG}"
@@ -568,8 +589,7 @@ if [ -z "${qarg}" ]; then usage; exit 1; fi
 
 pilotargs="$@"
 
-cricurl="http://pandaserver-doma.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
-if [ -z ${APFMON} ]; then
-  RTMON="http://rtmon.lancs.ac.uk/api"
+if [ -z ${RTMON} ]; then
+  RTMON="https://rtmon.lancs.ac.uk/api"
 fi
 main "$myargs"
