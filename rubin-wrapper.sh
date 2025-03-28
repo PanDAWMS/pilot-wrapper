@@ -42,7 +42,6 @@ function check_python3() {
     fi
     log "PATH content: ${PATH}"
     err "PATH content: ${PATH}"
-    apfmon_fault 1
     sortie 1
   fi
 }
@@ -64,7 +63,6 @@ function check_cvmfs() {
     log "ERROR: LSST software repository NOT found: ${VO_LSST_SW_DIR}"
     log "FATAL: Failed to find LSST software repository"
     err "FATAL: Failed to find LSST software repository"
-    apfmon_fault 1
     sortie 1
   fi
 }
@@ -82,14 +80,12 @@ function setup_lsst() {
   source ${pandaenvdir}/conda/install/bin/activate pilot
   export PILOT_ES_EXECUTOR_TYPE=fineGrainedProc
   log "DAF_BUTLER_REPOSITORY_INDEX=${DAF_BUTLER_REPOSITORY_INDEX}"
-  stat ${DAF_BUTLER_REPOSITORY_INDEX}
-  if [[ $? -eq 0 ]]; then
+  if stat "${DAF_BUTLER_REPOSITORY_INDEX}"; then
     log 'cat ${DAF_BUTLER_REPOSITORY_INDEX}'
     cat ${DAF_BUTLER_REPOSITORY_INDEX}
   else
     log 'FATAL: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
     err 'FATAL: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
-    apfmon_fault 1
     sortie 1
   fi
 }
@@ -133,12 +129,10 @@ function get_piloturl() {
   if [[ ${version} == '1' ]]; then
     log "FATAL: pilot version 1 requested, not supported by this wrapper"
     err "FATAL: pilot version 1 requested, not supported by this wrapper"
-    apfmon 1
     sortie 1
   elif [[ ${version} == '2' ]]; then
     log "FATAL: pilot version 2 requested, not supported by this wrapper"
     err "FATAL: pilot version 2 requested, not supported by this wrapper"
-    apfmon 1
     sortie 1
   elif [[ ${version} == 'latest' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
@@ -198,12 +192,7 @@ function get_pilot() {
   fi
 }
 
-function muted() {
-  log "apfmon messages muted"
-}
-
 function rtmon_running() {
-  [[ ${mute} == 'true' ]] && muted && return 0
   log "APFCE: ${APFCE}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
@@ -214,62 +203,6 @@ function rtmon_running() {
          ${HARVESTER_WORKER_ID:-unknown} \
          ${GTAG:-unknown}" \
          > /dev/udp/148.88.97.108/15778
-  resource=${GRID_GLOBAL_JOBHOST:-}
-  out=$(curl -ksS --connect-timeout 5 --max-time 10 -d uuid=${UUID} \
-             -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
-             -d gtag=${GTAG} -d resource=${resource} \
-             -d hid=${HARVESTER_ID} -d hwid=${HARVESTER_WORKER_ID} \
-             ${RTMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    log $out
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
-}
-
-function apfmon_exiting() {
-  [[ ${mute} == 'true' ]] && muted && return 0
-  duration=$(( $(date +%s) - ${starttime} ))
-  log "${state} ec=$ec, duration=${duration}"
-  echo -n "${VERSION} \
-         ${APFFID}:${APFCID} \
-         exiting ${duration} \
-         ${qarg:-unknown} \
-         ${APFCE:-unknown} \
-         ${HARVESTER_ID:-unknown} \
-         ${HARVESTER_WORKER_ID:-unknown} \
-         ${GTAG:-unknown}" \
-         > /dev/udp/148.88.97.108/15778
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
-             -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
-             -d ids="${pandaids}" -d duration=$2 \
-             ${RTMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    log $out
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
-}
-
-function apfmon_fault() {
-  [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "${VERSION} \
-         ${APFFID}:${APFCID} \
-         fault ${duration} \
-         ${qarg:-unknown} \
-         ${APFCE:-unknown} \
-         ${HARVESTER_ID:-unknown} \
-         ${HARVESTER_WORKER_ID:-unknown} \
-         ${GTAG:-unknown}" \
-         > /dev/udp/148.88.97.108/15778
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
-             -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
-             ${RTMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    log $out
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
 }
 
 function trap_handler() {
@@ -283,20 +216,28 @@ function trap_handler() {
 }
 
 function sortie() {
-  ec=$1
-  if [[ $ec -eq 0 ]]; then
+  if [[ $1 -eq 0 ]]; then
     state=exiting
   else
     state=fault
   fi
 
+  duration=$(( $(date +%s) - ${starttime} ))
+  log "${state} ec=$1, duration=${duration}"
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         ${state} ${duration} \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.97.108/15778
+  
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
 
-  duration=$(( $(date +%s) - ${starttime} ))
-  log "${state} ec=$ec, duration=${duration}"
-  
-  exit $ec
+  exit $1
 }
 
 function main() {
@@ -396,7 +337,6 @@ function main() {
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code"
     err "FATAL: failed to get pilot code"
-    apfmon_fault 1
     sortie 1
   fi
   echo
@@ -448,8 +388,6 @@ function main() {
     err "File not found: ${workdir}/${pilotbase}/pandaIDs.out, no payload"
     pandaids=''
   fi
-
-  apfmon_exiting ${pilotrc}
 
   if [[ ${piloturl} != 'local' ]]; then
       log "cleanup: rm -rf $workdir"
@@ -584,5 +522,17 @@ pilotargs="$@"
 
 if [ -z ${RTMON} ]; then
   RTMON="https://rtmon.lancs.ac.uk/api"
+fi
+if [[ -n "${GRID_GLOBAL_JOBHOST}" ]]; then
+  # ARCCE
+  APFCE="${GRID_GLOBAL_JOBHOST}"
+elif [[ -n "${SCHEDD_NAME}" ]]; then
+  # HTCONDORCE
+  APFCE="${SCHEDD_NAME}"
+elif [[ -n "${CONDORCE_COLLECTOR_HOST}" ]]; then
+  # HTCONDORCE
+  APFCE="${CONDORCE_COLLECTOR_HOST%:*}"
+else
+  APFCE="unknown"
 fi
 main "$myargs"
