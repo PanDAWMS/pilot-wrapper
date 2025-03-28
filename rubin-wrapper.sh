@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250328z-rubin
+VERSION=20250328a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -285,9 +285,9 @@ function trap_handler() {
 function sortie() {
   ec=$1
   if [[ $ec -eq 0 ]]; then
-    state=wrapperexiting
+    state=exiting
   else
-    state=wrapperfault
+    state=fault
   fi
 
   log "==== wrapper stdout END ===="
@@ -296,12 +296,6 @@ function sortie() {
   duration=$(( $(date +%s) - ${starttime} ))
   log "${state} ec=$ec, duration=${duration}"
   
-  if [[ ${mute} == 'true' ]]; then
-    muted
-  else
-    echo "PALudp"
-  fi
-
   exit $ec
 }
 
@@ -464,7 +458,6 @@ function main() {
       log "Test setup, not cleaning"
   fi
 
-  echo "---- LSST_LOCAL_EPILOG script ----"
   if [[ -n "${LSST_LOCAL_EPILOG}" ]]; then
     if [[ -f "${LSST_LOCAL_EPILOG}" ]]; then
       log "Sourcing local site epilog: ${LSST_LOCAL_EPILOG}"
