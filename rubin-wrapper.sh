@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250328a-rubin
+VERSION=20250331a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -354,6 +354,10 @@ function main() {
 
   echo "---- Check python version ----"
   check_python3
+  echo 
+
+  echo "---- Check proxy ----"
+  check_proxy
   echo 
 
   echo "---- Job Environment (redacted) ----"
