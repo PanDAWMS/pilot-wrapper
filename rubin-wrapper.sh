@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250225a-rubin
+VERSION=20250331a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -42,7 +42,6 @@ function check_python3() {
     fi
     log "PATH content: ${PATH}"
     err "PATH content: ${PATH}"
-    apfmon_fault 1
     sortie 1
   fi
 }
@@ -64,7 +63,6 @@ function check_cvmfs() {
     log "ERROR: LSST software repository NOT found: ${VO_LSST_SW_DIR}"
     log "FATAL: Failed to find LSST software repository"
     err "FATAL: Failed to find LSST software repository"
-    apfmon_fault 1
     sortie 1
   fi
 }
@@ -82,14 +80,12 @@ function setup_lsst() {
   source ${pandaenvdir}/conda/install/bin/activate pilot
   export PILOT_ES_EXECUTOR_TYPE=fineGrainedProc
   log "DAF_BUTLER_REPOSITORY_INDEX=${DAF_BUTLER_REPOSITORY_INDEX}"
-  stat ${DAF_BUTLER_REPOSITORY_INDEX}
-  if [[ $? -eq 0 ]]; then
+  if stat "${DAF_BUTLER_REPOSITORY_INDEX}"; then
     log 'cat ${DAF_BUTLER_REPOSITORY_INDEX}'
     cat ${DAF_BUTLER_REPOSITORY_INDEX}
   else
     log 'FATAL: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
     err 'FATAL: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
-    apfmon_fault 1
     sortie 1
   fi
 }
@@ -133,12 +129,10 @@ function get_piloturl() {
   if [[ ${version} == '1' ]]; then
     log "FATAL: pilot version 1 requested, not supported by this wrapper"
     err "FATAL: pilot version 1 requested, not supported by this wrapper"
-    apfmon 1
     sortie 1
   elif [[ ${version} == '2' ]]; then
     log "FATAL: pilot version 2 requested, not supported by this wrapper"
     err "FATAL: pilot version 2 requested, not supported by this wrapper"
-    apfmon 1
     sortie 1
   elif [[ ${version} == 'latest' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
@@ -198,52 +192,17 @@ function get_pilot() {
   fi
 }
 
-function muted() {
-  log "apfmon messages muted"
-}
-
-function apfmon_running() {
-  [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "running 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.72.40/15778
-  resource=${GRID_GLOBAL_JOBHOST:-}
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
-             -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
-             -d gtag=${GTAG} -d resource=${resource} \
-             -d hid=${HARVESTER_ID} -d hwid=${HARVESTER_WORKER_ID} \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    log $out
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
-}
-
-function apfmon_exiting() {
-  [[ ${mute} == 'true' ]] && muted && return 0
-  log "${state} ec=$ec, duration=${duration}"
-  echo -n "exiting ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.72.40/15778
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
-             -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
-             -d ids="${pandaids}" -d duration=$2 \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    log $out
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
-}
-
-function apfmon_fault() {
-  [[ ${mute} == 'true' ]] && muted && return 0
-  echo -n "fault ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.72.40/15778
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
-             -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    log $out
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
+function rtmon_running() {
+  log "APFCE: ${APFCE}"
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         running 0 \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.97.108/15778
 }
 
 function trap_handler() {
@@ -257,63 +216,28 @@ function trap_handler() {
 }
 
 function sortie() {
-  ec=$1
-  if [[ $ec -eq 0 ]]; then
-    state=wrapperexiting
+  if [[ $1 -eq 0 ]]; then
+    state=exiting
   else
-    state=wrapperfault
+    state=fault
   fi
 
+  duration=$(( $(date +%s) - ${starttime} ))
+  log "${state} ec=$1, duration=${duration}"
+  echo -n "${VERSION} \
+         ${APFFID}:${APFCID} \
+         ${state} ${duration} \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.97.108/15778
+  
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
 
-  duration=$(( $(date +%s) - ${starttime} ))
-  log "${state} ec=$ec, duration=${duration}"
-  
-  if [[ ${mute} == 'true' ]]; then
-    muted
-  else
-    echo -n "${state} ${duration} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID} ${GTAG}" > /dev/udp/148.88.72.40/15778
-  fi
-
-  exit $ec
-}
-
-function get_cricopts() {
-  container_opts=$(curl --silent $cricurl | grep container_options | grep -v null)
-  if [[ $? -eq 0 ]]; then
-    cricopts=$(echo $container_opts | awk -F"\"" '{print $4}')
-    echo ${cricopts}
-    return 0
-  else
-    return 1
-  fi
-}
-
-function get_catchall() {
-  local result
-  local content
-  result=$(curl --silent $cricurl | grep catchall | grep -v null)
-  if [[ $? -eq 0 ]]; then
-    content=$(echo $result | awk -F"\"" '{print $4}')
-    echo ${content}
-    return 0
-  else
-    return 1
-  fi
-}
-
-function get_environ() {
-  local result
-  local content
-  result=$(curl --silent $cricurl | grep environ | grep -v null)
-  if [[ $? -eq 0 ]]; then
-    content=$(echo $result | awk -F"\"" '{print $4}')
-    echo ${content}
-    return 0
-  else
-    return 1
-  fi
+  exit $1
 }
 
 function main() {
@@ -336,8 +260,7 @@ function main() {
   log "==== wrapper stdout BEGIN ===="
   err "==== wrapper stderr BEGIN ===="
   UUID=$(cat /proc/sys/kernel/random/uuid)
-  apfmon_running
-  log "${cricurl}"
+  rtmon_running
   echo
 
   echo "---- Host details ----"
@@ -414,7 +337,6 @@ function main() {
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code"
     err "FATAL: failed to get pilot code"
-    apfmon_fault 1
     sortie 1
   fi
   echo
@@ -426,21 +348,6 @@ function main() {
   ulimit -a
   echo
   
-  echo "--- Bespoke environment from CRIC ---"
-  result=$(get_environ)
-  if [[ $? -eq 0 ]]; then
-    if [[ -z ${result} ]]; then
-      log 'CRIC environ field: <empty>'
-    else
-      log 'CRIC environ content'
-      log "export ${result}"
-      export ${result}
-    fi
-  else
-    log 'No content found in CRIC environ'
-  fi
-  echo
-
   echo "---- Setup LSST environ ----"
   setup_lsst
   echo
@@ -449,16 +356,10 @@ function main() {
   check_python3
   echo 
 
-   echo "---- Proxy Information ----"
-  if [[ ${tflag} == 'true' ]]; then
-    log 'Skipping proxy checks due to -t flag'
-  else
-    :
-    # TODO sort jar issue
-    # check_proxy
-  fi
-  echo
-  
+  echo "---- Check proxy ----"
+  check_proxy
+  echo 
+
   echo "---- Job Environment (redacted) ----"
   printenv | grep -v GOOGLE_APPLICATION_CREDENTIALS | grep -v LSST_DB_AUTH
   echo
@@ -480,9 +381,7 @@ function main() {
   log "==== wrapper stdout RESUME ===="
   log "pilotpid: $pilotpid"
   log "Pilot exit status: $pilotrc"
-  
-  log "Temp override of pilotbase to hardcoded pilot3"
-  log "https://github.com/PanDAWMS/pilot3/issues/54"
+
   pilotbase=pilot3
   if [[ -f ${workdir}/${pilotbase}/pandaIDs.out ]]; then
     # max 30 pandaids
@@ -494,10 +393,6 @@ function main() {
     pandaids=''
   fi
 
-  duration=$(( $(date +%s) - ${starttime} ))
-  apfmon_exiting ${pilotrc} ${duration}
-  
-
   if [[ ${piloturl} != 'local' ]]; then
       log "cleanup: rm -rf $workdir"
       rm -fr $workdir
@@ -505,13 +400,9 @@ function main() {
       log "Test setup, not cleaning"
   fi
 
-  echo "---- LSST_LOCAL_EPILOG script ----"
   if [[ -n "${LSST_LOCAL_EPILOG}" ]]; then
     if [[ -f "${LSST_LOCAL_EPILOG}" ]]; then
       log "Sourcing local site epilog: ${LSST_LOCAL_EPILOG}"
-      log "Content of: ${LSST_LOCAL_EPILOG}"
-      cat ${LSST_LOCAL_EPILOG}
-      echo
       source ${LSST_LOCAL_EPILOG}
     else
       log "WARNING: epilog script not found, expecting LSST_LOCAL_EPILOG=${LSST_LOCAL_EPILOG}"
@@ -524,7 +415,6 @@ function main() {
 function usage () {
   echo "Usage: $0 -q <queue> -r <resource> -s <site> [<pilot_args>]"
   echo
-  echo "  --container (Standalone container), file to source for release setup "
   echo "  -i,   pilot type, default PR"
   echo "  -j,   job type prodsourcelabel, default 'managed'"
   echo "  -q,   panda queue"
@@ -634,9 +524,19 @@ if [ -z "${qarg}" ]; then usage; exit 1; fi
 
 pilotargs="$@"
 
-cricurl="http://pandaserver-doma.cern.ch:25085/cache/schedconfig/${sarg}.all.json"
-fabricmon="http://apfmon.lancs.ac.uk/api"
-if [ -z ${APFMON} ]; then
-  APFMON=${fabricmon}
+if [ -z ${RTMON} ]; then
+  RTMON="https://rtmon.lancs.ac.uk/api"
+fi
+if [[ -n "${GRID_GLOBAL_JOBHOST}" ]]; then
+  # ARCCE
+  APFCE="${GRID_GLOBAL_JOBHOST}"
+elif [[ -n "${SCHEDD_NAME}" ]]; then
+  # HTCONDORCE
+  APFCE="${SCHEDD_NAME}"
+elif [[ -n "${CONDORCE_COLLECTOR_HOST}" ]]; then
+  # HTCONDORCE
+  APFCE="${CONDORCE_COLLECTOR_HOST%:*}"
+else
+  APFCE="unknown"
 fi
 main "$myargs"
