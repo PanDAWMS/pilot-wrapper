@@ -195,8 +195,33 @@ function get_pilot() {
 function rtmon_running() {
   log "APFCE: ${APFCE}"
   echo -n "${VERSION} \
-         ${APFFID}:${APFCID} \
          running 0 \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.97.108/15778
+}
+
+function apfmon_exiting() {
+  [[ ${mute} == 'true' ]] && muted && return 0
+  duration=$(( $(date +%s) - ${starttime} ))
+  log "${state} ec=$ec, duration=${duration}"
+  echo -n "${VERSION} \
+         exiting ${duration} \
+         ${qarg:-unknown} \
+         ${APFCE:-unknown} \
+         ${HARVESTER_ID:-unknown} \
+         ${HARVESTER_WORKER_ID:-unknown} \
+         ${GTAG:-unknown}" \
+         > /dev/udp/148.88.97.108/15778
+}
+
+function apfmon_fault() {
+  [[ ${mute} == 'true' ]] && muted && return 0
+  echo -n "${VERSION} \
+         fault ${duration} \
          ${qarg:-unknown} \
          ${APFCE:-unknown} \
          ${HARVESTER_ID:-unknown} \
