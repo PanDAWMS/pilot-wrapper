@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250320a-next
+VERSION=20250604z-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -322,7 +322,6 @@ function pilot_cmd() {
 function sing_cmd() {
   cmd="$BINARY_PATH exec $SINGULARITY_OPTIONS --env \"APFCID=$APFCID\" \
                                               --env \"APFFID=$APFFID\" \
-#                                              --env \"APFCE=$APFCE\" \
                                               --env \"GRID_GLOBAL_JOBHOST=$GRID_GLOBAL_JOBHOST\" \
                                               --env \"SCHEDD_NAME=$SCHEDD_NAME\" \
                                               --env \"HARVESTER_ID=$HARVESTER_ID\" \
@@ -466,7 +465,7 @@ function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "APFCE: ${APFCE}"
   duration=$(( $(date +%s) - ${starttime} ))
-  log "${state} ec=$ec, duration=${duration}"
+  log "exiting ec=$1, duration=${duration}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
          exiting \
@@ -477,22 +476,13 @@ function apfmon_exiting() {
          ${HARVESTER_WORKER_ID:-unknown} \
          ${GTAG:-unknown}" \
          > /dev/udp/148.88.96.15/28527
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
-             -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
-             -d ids="${pandaids}" -d duration=${duration} \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    :
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
 }
 
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "APFCE: ${APFCE}"
   duration=$(( $(date +%s) - ${starttime} ))
-  log "${state} ec=$ec, duration=${duration}"
+  log "${state} ec=$1, duration=${duration}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
          fault \
@@ -503,14 +493,6 @@ function apfmon_fault() {
          ${HARVESTER_WORKER_ID:-unknown} \
          ${GTAG:-unknown}" \
          > /dev/udp/148.88.96.15/28527
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
-             -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    : 
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
 }
 
 function trap_handler() {
@@ -537,11 +519,6 @@ function sortie() {
   #         2: "wrapper killed stuck pilot",
   #        64: "wrapper got cvmfs repos issue",
   ec=$1
-  if [[ $ec -eq 0 ]]; then
-    state=wrapperexiting
-  else
-    state=wrapperfault
-  fi
 
   if [[ -n "${SUPERVISOR_PID}" ]]; then
     CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
@@ -556,13 +533,17 @@ function sortie() {
   kill -s 15 $CHILD $SUPERVISOR_PID > /dev/null 2>&1
 
   if [[ ${piloturl} != 'local' ]]; then
-      log "cleanup: rm -rf $workdir"
-      rm -fr $workdir
+    log "cleanup: rm -rf $workdir"
+    rm -fr $workdir
   else
-      log "Test setup, not cleaning"
+    log "Test setup, not cleaning"
   fi
 
-  apfmon_exiting ${ec}
+  if [[ $ec -eq 0 ]]; then
+    apfmon_exiting ${ec}
+  else
+    apfmon_fault ${ec}
+  fi
 
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
@@ -1091,8 +1072,8 @@ function main() {
     apfmon_fault 80
     sortie 80
   elif [[ $pilotrc -ne 0 ]]; then
-    log "WARNING: pilot exitcode non-zero"
-    err "WARNING: pilot exitcode non-zero"
+    log "WARNING: pilot exitcode non-zero: ${pilotrc}"
+    err "WARNING: pilot exitcode non-zero: ${pilotrc}"
     apfmon_fault $pilotrc
     sortie $pilotrc
   fi
