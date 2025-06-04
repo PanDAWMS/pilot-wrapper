@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250604a-next
+VERSION=20250321a-master
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -26,7 +26,7 @@ function get_workdir {
     # test if Harvester WorkFlow is OneToMany aka "Jumbo" Jobs
     if [[ ${workflowarg} == 'OneToMany' ]]; then
       if [[ -n ${!harvesterarg} ]]; then
-        templ=$(pwd)/atlas_${!harvesterarg}
+        templ=$(pwd)/${expt}_${!harvesterarg}
         mkdir ${templ}
         echo ${templ}
         return 0
@@ -38,11 +38,11 @@ function get_workdir {
   fi
 
   if [[ -n "${OSG_WN_TMP}" ]]; then
-    templ=${OSG_WN_TMP}/atlas_XXXXXXXX
+    templ=${OSG_WN_TMP}/${expt}_XXXXXXXX
   elif [[ -n "${TMPDIR}" ]]; then
-    templ=${TMPDIR}/atlas_XXXXXXXX
+    templ=${TMPDIR}/${expt}_XXXXXXXX
   else
-    templ=$(pwd)/atlas_XXXXXXXX
+    templ=$(pwd)/${expt}_XXXXXXXX
   fi
   tempd=$(mktemp -d $templ)
   if [[ $? -ne 0 ]]; then
@@ -138,6 +138,7 @@ function check_python3() {
     sortie 1
   fi
 
+  #pyver=$($pybin -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
   pyver=$($pybin -c 'import sys; print("%i%02i" % (sys.version_info.major, sys.version_info.minor))')
   # check if python version > 3.6
   if [[ ${pyver} -ge 306 ]] ; then
@@ -210,6 +211,9 @@ function setup_alrb() {
     log 'ALRB pilot requested, setting ALRB env vars to testing'
     export ALRB_adcTesting=YES
   fi
+  export ATLAS_LOCAL_ROOT_BASE=${ATLAS_LOCAL_ROOT_BASE:-${ATLAS_SW_BASE}/atlas.cern.ch/repo/ATLASLocalRootBase}
+  export ALRB_userMenuFmtSkip=YES
+  export ALRB_noGridMW=${ALRB_noGridMW:-NO}
 
   if [[ ${ALRB_noGridMW} == "YES" ]]; then
     log "Site has set ALRB_noGridMW=YES so use site native install rather than ALRB"
@@ -254,6 +258,27 @@ function setup_local() {
     fi
   fi
 
+  # for Panda@BNL changes
+  log "__ redefine the X509 env variables to non-ATLAS ones"
+  export X509_VOMS_DIR=/cvmfs/oasis.opensciencegrid.org/mis/vodata/grid-security/vomsdir
+  export X509_VOMSES=/cvmfs/oasis.opensciencegrid.org/mis/vodata/vomses
+  export X509_CERT_DIR=/cvmfs/oasis.opensciencegrid.org/mis/certificates
+
+#  mkdir /tmp/myRucio
+#  cd /tmp/myRucio
+#  ln -s $RUCIO_HOME/bin
+#  ln -s $RUCIO_HOME/lib
+#  ln -s $RUCIO_HOME/externals
+#  mkdir etc
+#  ln -s $RUCIO_CONFIG etc/rucio.cfg
+#  export RUCIO_HOME=`pwd`
+#  cd -
+
+  voms-proxy-info -all
+
+  log " -- printout RUCIO/X509/PATH/PYTHON env variables after setup_local"
+  env | grep -E 'RUCIO|X509|PATH|PYTHON'
+  
 }
 
 function setup_shoal() {
@@ -352,7 +377,14 @@ function sing_env() {
 
 function get_piloturl() {
   local version=$1
-  local pilotdir=file://${ATLAS_SW_BASE}/atlas.cern.ch/repo/sw/PandaPilot/tar
+
+  if [ $expt == 'sphenix' ]; then
+      local pilotdir=file:///cvmfs/sphenix.sdcc.bnl.gov/panda/
+  elif [ $expt == 'eic' ]; then
+      local pilotdir=file:///cvmfs/eic.opensciencegrid.org/panda/pilot/      
+  else # right now the default is to use the tar balls from the ATLAS cvmfs area
+      local pilotdir=file://${ATLAS_SW_BASE}/atlas.cern.ch/repo/sw/PandaPilot/tar
+  fi
 
   if [[ -n ${piloturl} ]]; then
     echo ${piloturl}
@@ -465,7 +497,7 @@ function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "APFCE: ${APFCE}"
   duration=$(( $(date +%s) - ${starttime} ))
-  log "exiting ec=$1, duration=${duration}"
+  log "${state} ec=$ec, duration=${duration}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
          exiting \
@@ -476,13 +508,22 @@ function apfmon_exiting() {
          ${HARVESTER_WORKER_ID:-unknown} \
          ${GTAG:-unknown}" \
          > /dev/udp/148.88.96.15/28527
+  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
+             -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
+             -d ids="${pandaids}" -d duration=${duration} \
+             ${APFMON}/jobs/${APFFID}:${APFCID})
+  if [[ $? -eq 0 ]]; then
+    :
+  else
+    err "WARNING: wrapper monitor ${UUID}"
+  fi
 }
 
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "APFCE: ${APFCE}"
   duration=$(( $(date +%s) - ${starttime} ))
-  log "${state} ec=$1, duration=${duration}"
+  log "${state} ec=$ec, duration=${duration}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
          fault \
@@ -493,6 +534,14 @@ function apfmon_fault() {
          ${HARVESTER_WORKER_ID:-unknown} \
          ${GTAG:-unknown}" \
          > /dev/udp/148.88.96.15/28527
+  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
+             -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
+             ${APFMON}/jobs/${APFFID}:${APFCID})
+  if [[ $? -eq 0 ]]; then
+    : 
+  else
+    err "WARNING: wrapper monitor ${UUID}"
+  fi
 }
 
 function trap_handler() {
@@ -519,6 +568,11 @@ function sortie() {
   #         2: "wrapper killed stuck pilot",
   #        64: "wrapper got cvmfs repos issue",
   ec=$1
+  if [[ $ec -eq 0 ]]; then
+    state=wrapperexiting
+  else
+    state=wrapperfault
+  fi
 
   if [[ -n "${SUPERVISOR_PID}" ]]; then
     CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
@@ -533,17 +587,13 @@ function sortie() {
   kill -s 15 $CHILD $SUPERVISOR_PID > /dev/null 2>&1
 
   if [[ ${piloturl} != 'local' ]]; then
-    log "cleanup: rm -rf $workdir"
-    rm -fr $workdir
+      log "cleanup: rm -rf $workdir"
+      rm -fr $workdir
   else
-    log "Test setup, not cleaning"
+      log "Test setup, not cleaning"
   fi
 
-  if [[ $ec -eq 0 ]]; then
-    apfmon_exiting ${ec}
-  else
-    apfmon_fault ${ec}
-  fi
+  apfmon_exiting ${ec}
 
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
@@ -1072,8 +1122,8 @@ function main() {
     apfmon_fault 80
     sortie 80
   elif [[ $pilotrc -ne 0 ]]; then
-    log "WARNING: pilot exitcode non-zero: ${pilotrc}"
-    err "WARNING: pilot exitcode non-zero: ${pilotrc}"
+    log "WARNING: pilot exitcode non-zero"
+    err "WARNING: pilot exitcode non-zero"
     apfmon_fault $pilotrc
     sortie $pilotrc
   fi
@@ -1119,13 +1169,14 @@ harvesterarg=''
 workflowarg=''
 iarg='PR'
 jarg='managed'
+expt='atlas'
 qarg=''
 rarg=''
 shoalflag='false'
 localpyflag='false'
 tflag='false'
 #pandaurl='http://pandaserver.cern.ch:25085'
-pandaurl='https://pandaserver.cern.ch:25443'
+pandaurl='https://pandaserver01.sdcc.bnl.gov:25443'
 piloturl=''
 pilotversion='latest'
 pilotbase='pilot3'
@@ -1163,7 +1214,7 @@ case $key in
     harvesterflag='true'
     harvesterarg="$2"
     mute='true'
-    pandaurl='https://pandaserver.cern.ch:25443'
+    pandaurl='https://pandaserver01.sdcc.bnl.gov:25443'
     piloturl='local'
     shift
     shift
@@ -1200,6 +1251,11 @@ case $key in
     ;;
     -j)
     jarg="$2"
+    shift
+    shift
+    ;;
+    -e)
+    expt="$2"
     shift
     shift
     ;;
@@ -1245,7 +1301,12 @@ pilotargs="$@"
 
 if [[ -f queuedata.json ]]; then
   cricurl="file://${PWD}/queuedata.json"
-else
+elif [ $expt == 'sphenix' ]; then
+  #cricurl="http://http-sphenix-pandaserver.apps.rcf.bnl.gov/cache/schedconfig/${sarg}.all.json"
+  cricurl="http://http-sphenix-pandaserver-test.apps.rcf.bnl.gov/cache/schedconfig/${sarg}.all.json"
+elif [ $expt == 'eic' ]; then
+  cricurl="http://pandaserver01.sdcc.bnl.gov:25080/cache/schedconfig/${sarg}.all.json"
+else # default points to the ATLAS panda server 
   cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${qarg}.all.json"
 fi
 
@@ -1253,6 +1314,7 @@ fabricmon="http://apfmon.lancs.ac.uk/api"
 if [ -z ${APFMON} ]; then
   APFMON=${fabricmon}
 fi
+
 if [[ -n "${GRID_GLOBAL_JOBHOST}" ]]; then
   # ARCCE
   declare -g APFCE="${GRID_GLOBAL_JOBHOST}"
@@ -1265,4 +1327,14 @@ elif [[ -n "${CONDORCE_COLLECTOR_HOST}" ]]; then
 else
   declare -g APFCE="unknown"
 fi
+
+# right now just for sphenix jobs, not sure if any other experiments need it ... 
+if [ "$expt" = 'sphenix' ] || [ "$expt" = 'eic' ]; then
+    pilotargs="${pilotargs} --queuedata-url ${cricurl}"
+fi
+
+# pilotargs="${pilotargs} --storagedata-url https://atlas-cric.cern.ch/cache/ddmendpoints.json"
+pilotargs="${pilotargs} --storagedata-url https://datalake-cric.cern.ch/cache/ddmendpoints.json"
+
 main "$myargs"
+
