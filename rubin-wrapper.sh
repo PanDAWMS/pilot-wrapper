@@ -46,15 +46,6 @@ function check_python3() {
   fi
 }
 
-function check_proxy() {
-  if voms-proxy-info -all; then
-    return
-  else
-    log "WARNING: error running: voms-proxy-info -all"
-    err "WARNING: error running: voms-proxy-info -all"
-  fi
-}
-
 function check_cvmfs() {
   local VO_LSST_SW_DIR=/cvmfs/sw.lsst.eu/almalinux-x86_64/lsst_distrib
   if [[ -d ${VO_LSST_SW_DIR} ]]; then
@@ -412,10 +403,6 @@ function main() {
 
   echo "---- Check python version ----"
   check_python3
-  echo 
-
-  echo "---- Check proxy ----"
-  check_proxy
   echo 
 
   echo "---- Job Environment (redacted) ----"
