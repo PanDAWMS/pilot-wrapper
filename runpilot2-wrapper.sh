@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250321a-master
+VERSION=20250605a-eic
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -64,7 +64,6 @@ function check_python2() {
     fi
     log "PATH content is ${PATH}"
     err "PATH content is ${PATH}"
-    apfmon_fault 1
     sortie 1
   fi
 
@@ -73,7 +72,6 @@ function check_python2() {
   if [[ ${pyver} -ge 300 ]] ; then
     log "ERROR: this site has python > 3.0, but only python2 requested"
     err "ERROR: this site has python > 3.0, but only python2 requested"
-    apfmon_fault 1
     sortie 1
   fi
 
@@ -90,7 +88,6 @@ function check_python2() {
     # Oh dear, we're doomed...
     log "FATAL: Failed to find a compatible python, exiting"
     err "FATAL: Failed to find a compatible python, exiting"
-    apfmon_fault 1
     sortie 1
   fi
 }
@@ -112,7 +109,6 @@ function setup_python3() {
     if [[ $? -ne 0 ]]; then
       log "FATAL: failed to source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh"
       err "FATAL: failed to source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh"
-      apfmon_fault 64
       sortie 64
     fi
     if [ -z $ALRB_pythonVersion ]; then
@@ -134,7 +130,6 @@ function check_python3() {
     fi
     log "PATH content: ${PATH}"
     err "PATH content: ${PATH}"
-    apfmon_fault 1
     sortie 1
   fi
 
@@ -152,7 +147,6 @@ function check_python3() {
     # Oh dear, we're doomed...
     log "FATAL: Failed to find a compatible python, exiting"
     err "FATAL: Failed to find a compatible python, exiting"
-    apfmon_fault 1
     sortie 1
   fi
 }
@@ -166,7 +160,6 @@ function check_proxy() {
     if [[ $? -eq 127 ]]; then
       log "FATAL: error running: arcproxy -I"
       err "FATAL: error running: arcproxy -I"
-      apfmon_fault 1
       sortie 1
     fi
   fi
@@ -189,8 +182,6 @@ function check_cvmfs() {
     else
       log "WARNING: ${target} not accessible or empty, pilot to handle"
       err "WARNING: ${target} not accessible or empty, pilot to handle"
-#      apfmon_fault 64
-#      sortie 64
     fi
   done
 }
@@ -224,7 +215,6 @@ function setup_alrb() {
       if [[ $? -eq 1 ]]; then
         log "FATAL: Site MW being used but proxy tools not found"
         err "FATAL: Site MW being used but proxy tools not found"
-        apfmon_fault 1
         sortie 1
       fi
     fi
@@ -394,12 +384,10 @@ function get_piloturl() {
   if [[ ${version} == '1' ]]; then
     log "FATAL: pilot version 1 requested, not supported by this wrapper"
     err "FATAL: pilot version 1 requested, not supported by this wrapper"
-    apfmon_fault 1
     sortie 1
   elif [[ ${version} == '2' ]]; then
     log "FATAL: pilot version 2 requested, not supported by this wrapper"
     err "FATAL: pilot version 2 requested, not supported by this wrapper"
-    apfmon_fault 1
     sortie 1
   elif [[ ${version} == 'latest' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
@@ -480,12 +468,7 @@ function apfmon_running() {
          ${HARVESTER_ID:-unknown} \
          ${HARVESTER_WORKER_ID:-unknown} \
          ${GTAG:-unknown}" \
-         > /dev/udp/148.88.96.15/28527
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
-             -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
-             -d gtag=${GTAG} -d resource=${resource} \
-             -d hid=${HARVESTER_ID} -d hwid=${HARVESTER_WORKER_ID} \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
+         > /dev/udp/148.88.96.34/15342
   if [[ $? -eq 0 ]]; then
     log $out
   else
@@ -497,7 +480,7 @@ function apfmon_exiting() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "APFCE: ${APFCE}"
   duration=$(( $(date +%s) - ${starttime} ))
-  log "${state} ec=$ec, duration=${duration}"
+  log "exiting ec=$1, duration=${duration}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
          exiting \
@@ -507,23 +490,14 @@ function apfmon_exiting() {
          ${HARVESTER_ID:-unknown} \
          ${HARVESTER_WORKER_ID:-unknown} \
          ${GTAG:-unknown}" \
-         > /dev/udp/148.88.96.15/28527
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
-             -d state=wrapperexiting -d rc=$1 -d uuid=${UUID} \
-             -d ids="${pandaids}" -d duration=${duration} \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    :
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
+         > /dev/udp/148.88.96.34/15342
 }
 
 function apfmon_fault() {
   [[ ${mute} == 'true' ]] && muted && return 0
   log "APFCE: ${APFCE}"
   duration=$(( $(date +%s) - ${starttime} ))
-  log "${state} ec=$ec, duration=${duration}"
+  log "${state} ec=$1, duration=${duration}"
   echo -n "${VERSION} \
          ${APFFID}:${APFCID} \
          fault \
@@ -533,15 +507,7 @@ function apfmon_fault() {
          ${HARVESTER_ID:-unknown} \
          ${HARVESTER_WORKER_ID:-unknown} \
          ${GTAG:-unknown}" \
-         > /dev/udp/148.88.96.15/28527
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 \
-             -d state=wrapperfault -d rc=$1 -d uuid=${UUID} \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    : 
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
+         > /dev/udp/148.88.96.34/15342
 }
 
 function trap_handler() {
@@ -568,11 +534,6 @@ function sortie() {
   #         2: "wrapper killed stuck pilot",
   #        64: "wrapper got cvmfs repos issue",
   ec=$1
-  if [[ $ec -eq 0 ]]; then
-    state=wrapperexiting
-  else
-    state=wrapperfault
-  fi
 
   if [[ -n "${SUPERVISOR_PID}" ]]; then
     CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
@@ -587,13 +548,17 @@ function sortie() {
   kill -s 15 $CHILD $SUPERVISOR_PID > /dev/null 2>&1
 
   if [[ ${piloturl} != 'local' ]]; then
-      log "cleanup: rm -rf $workdir"
-      rm -fr $workdir
+    log "cleanup: rm -rf $workdir"
+    rm -fr $workdir
   else
-      log "Test setup, not cleaning"
+    log "Test setup, not cleaning"
   fi
 
-  apfmon_exiting ${ec}
+  if [[ $ec -eq 0 ]]; then
+    apfmon_exiting ${ec}
+  else
+    apfmon_fault ${ec}
+  fi
 
   log "==== wrapper stdout END ===="
   err "==== wrapper stderr END ===="
@@ -687,12 +652,10 @@ function supervise_pilot() {
         err "CURRENT_TIME: ${CURRENT_TIME}"
         err "LAST_MODIFICATION: ${LAST_MODIFICATION}"
         err "TIME_DIFF: ${TIME_DIFF}"
-        echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.96.15/28527
-        echo -n "TIME_DIFF ${TIME_DIFF} ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
         log "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
         err "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
-        echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.96.15/28527
-        echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.15/28527
+        echo -n "SIGINT 0 ${VERSION} ${qarg} ${APFFID}:${APFCID}" > /dev/udp/148.88.96.34/15342
+        echo -n "SIGINT 0 ${VERSION} ${qarg} ${HARVESTER_ID}:${HARVESTER_WORKER_ID}" > /dev/udp/148.88.96.34/15342
         kill -s 2 $PILOT_PID > /dev/null 2>&1
         touch wrapper_sigint_$PILOT_PID
         sleep 180
@@ -840,7 +803,6 @@ function main() {
     else
       log "FATAL: failed to get CRIC container_options"
       err "FATAL: failed to get CRIC container_options"
-      apfmon_fault 1
       sortie 1
     fi
 
@@ -893,7 +855,6 @@ function main() {
   if [[ $? -ne 0 ]]; then
     log "FATAL: error with get_workdir"
     err "FATAL: error with get_workdir"
-    apfmon_fault 1
     sortie 1
   fi
   log "Workdir: ${workdir}"
@@ -925,7 +886,6 @@ function main() {
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code, from node: $(hostname -f)"
     err "FATAL: failed to get pilot code, from node: $(hostname -f)"
-    apfmon_fault 64
     sortie 64
   fi
   echo
@@ -1095,36 +1055,29 @@ function main() {
 
   if [[ $pilotrc -eq 130 ]]; then
     # killed by supervisor SIGINT so use exitcode 2
-    apfmon_fault 2
     sortie 2
   elif [[ $pilotrc -eq 143 ]]; then
     # killed by SIGTERM, presumably LRMS
-    apfmon_fault 1
     sortie 1
   elif [[ $pilotrc -eq 137 ]]; then
     if [[ -f "wrapper_sigkill_$pilotpid" ]]; then
       err "Found: wrapper_sigkill_$pilotpid, so killed by wrapper"
       # killed by wrapper SIGKILL
-      apfmon_fault 2
       sortie 2
     else
       # killed by some other SIGKILL, presumably LRMS
       err "Not found: wrapper_sigkill_$pilotpid, so not killed by wrapper"
-      apfmon_fault 1
       sortie 1
     fi
   elif [[ $pilotrc -eq 64 ]]; then
-    apfmon_fault 64
     sortie 64
   elif [[ $pilotrc -eq 80 ]]; then
     log "WARNING: pilot exitcode=80, proxy lifetime too short"
     err "WARNING: pilot exitcode=80, proxy lifetime too short"
-    apfmon_fault 80
     sortie 80
   elif [[ $pilotrc -ne 0 ]]; then
     log "WARNING: pilot exitcode non-zero"
     err "WARNING: pilot exitcode non-zero"
-    apfmon_fault $pilotrc
     sortie $pilotrc
   fi
 
@@ -1308,11 +1261,6 @@ elif [ $expt == 'eic' ]; then
   cricurl="http://pandaserver01.sdcc.bnl.gov:25080/cache/schedconfig/${sarg}.all.json"
 else # default points to the ATLAS panda server 
   cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${qarg}.all.json"
-fi
-
-fabricmon="http://apfmon.lancs.ac.uk/api"
-if [ -z ${APFMON} ]; then
-  APFMON=${fabricmon}
 fi
 
 if [[ -n "${GRID_GLOBAL_JOBHOST}" ]]; then
