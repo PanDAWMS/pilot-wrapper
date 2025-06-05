@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250331a-rubin
+VERSION=20250605a-supervisor
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -222,6 +222,25 @@ function sortie() {
     state=fault
   fi
 
+  if [[ -n "${SUPERVISOR_PID}" ]]; then
+    CHILD=$(ps -o pid= --ppid "$SUPERVISOR_PID")
+  else
+    log "No supervise_pilot process found"
+  fi
+  if [[ -n "${CHILD}" ]]; then
+    log "cleanup supervisor_pilot $CHILD $SUPERVISOR_PID"
+  else
+    log "No supervise_pilot CHILD process found"
+  fi
+  kill -s 15 $CHILD $SUPERVISOR_PID > /dev/null 2>&1
+
+  if [[ ${piloturl} != 'local' ]]; then
+      log "cleanup: rm -rf $workdir"
+      rm -fr $workdir
+  else
+      log "Test setup, not cleaning"
+  fi
+  
   duration=$(( $(date +%s) - ${starttime} ))
   log "${state} ec=$1, duration=${duration}"
   echo -n "${VERSION} \
@@ -238,6 +257,45 @@ function sortie() {
   err "==== wrapper stderr END ===="
 
   exit $1
+}
+
+function supervise_pilot() {
+  # check pilotlog.txt is being updated otherwise kill the pilot
+  local PILOT_PID=$1
+  local counter=0
+  while true; do
+    ((counter++))
+    err "supervise_pilot (15 min periods counter: ${counter})"
+    if [[ -f "pilotlog.txt" ]]; then
+      CURRENT_TIME=$(date +%s)
+      LAST_MODIFICATION=$(stat -c %Y "pilotlog.txt")
+      TIME_DIFF=$(( CURRENT_TIME - LAST_MODIFICATION ))
+
+      if [[ $TIME_DIFF -gt 3600 ]]; then
+        err "CURRENT_TIME: ${CURRENT_TIME}"
+        err "LAST_MODIFICATION: ${LAST_MODIFICATION}"
+        err "TIME_DIFF: ${TIME_DIFF}"
+        log "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
+        err "pilotlog.txt has not been updated in the last hour. Sending SIGINT (2) signal to the pilot process."
+        kill -s 2 $PILOT_PID > /dev/null 2>&1
+        touch wrapper_sigint_$PILOT_PID
+        sleep 180
+        if kill -s 0 $PILOT_PID > /dev/null 2>&1; then
+          log "The pilot process ($PILOT_PID) is still running after 3m. Sending SIGKILL (9)."
+          err "The pilot process ($PILOT_PID) is still running after 3m. Sending SIGKILL (9)."
+          kill -s 9 $PILOT_PID
+          touch wrapper_sigkill_$PILOT_PID
+        fi
+        exit 2
+      fi
+    else
+      log "pilotlog.txt does not exist (yet)"
+      err "pilotlog.txt does not exist (yet)"
+    fi
+
+    # Check every 15 mins
+    sleep 900
+  done
 }
 
 function main() {
@@ -375,7 +433,10 @@ function main() {
   log "==== pilot stdout BEGIN ===="
   $cmd &
   pilotpid=$!
-  wait $pilotpid
+  supervise_pilot ${pilotpid} &
+  SUPERVISOR_PID=$!
+  err "Started supervisor process ($SUPERVISOR_PID) (watching ${pilotpid})"
+  wait $pilotpid >/dev/null 2>&1
   pilotrc=$?
   log "==== pilot stdout END ===="
   log "==== wrapper stdout RESUME ===="
