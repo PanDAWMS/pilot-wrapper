@@ -437,16 +437,6 @@ function apfmon_running() {
          ${HARVESTER_WORKER_ID:-unknown} \
          ${GTAG:-unknown}" \
          > /dev/udp/148.88.96.15/28527
-  out=$(curl -ksS --connect-timeout 10 --max-time 20 -d uuid=${UUID} \
-             -d qarg=${qarg} -d state=wrapperrunning -d wrapper=${VERSION} \
-             -d gtag=${GTAG} -d resource=${resource} \
-             -d hid=${HARVESTER_ID} -d hwid=${HARVESTER_WORKER_ID} \
-             ${APFMON}/jobs/${APFFID}:${APFCID})
-  if [[ $? -eq 0 ]]; then
-    log $out
-  else
-    err "WARNING: wrapper monitor ${UUID}"
-  fi
 }
 
 function apfmon_exiting() {
