@@ -64,7 +64,6 @@ function check_python2() {
     fi
     log "PATH content is ${PATH}"
     err "PATH content is ${PATH}"
-    apfmon_fault 1
     sortie 1
   fi
 
@@ -73,7 +72,6 @@ function check_python2() {
   if [[ ${pyver} -ge 300 ]] ; then
     log "ERROR: this site has python > 3.0, but only python2 requested"
     err "ERROR: this site has python > 3.0, but only python2 requested"
-    apfmon_fault 1
     sortie 1
   fi
 
@@ -90,7 +88,6 @@ function check_python2() {
     # Oh dear, we're doomed...
     log "FATAL: Failed to find a compatible python, exiting"
     err "FATAL: Failed to find a compatible python, exiting"
-    apfmon_fault 1
     sortie 1
   fi
 }
@@ -112,7 +109,6 @@ function setup_python3() {
     if [[ $? -ne 0 ]]; then
       log "FATAL: failed to source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh"
       err "FATAL: failed to source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh"
-      apfmon_fault 64
       sortie 64
     fi
     if [ -z $ALRB_pythonVersion ]; then
@@ -134,7 +130,6 @@ function check_python3() {
     fi
     log "PATH content: ${PATH}"
     err "PATH content: ${PATH}"
-    apfmon_fault 1
     sortie 1
   fi
 
@@ -151,7 +146,6 @@ function check_python3() {
     # Oh dear, we're doomed...
     log "FATAL: Failed to find a compatible python, exiting"
     err "FATAL: Failed to find a compatible python, exiting"
-    apfmon_fault 1
     sortie 1
   fi
 }
@@ -165,7 +159,6 @@ function check_proxy() {
     if [[ $? -eq 127 ]]; then
       log "FATAL: error running: arcproxy -I"
       err "FATAL: error running: arcproxy -I"
-      apfmon_fault 1
       sortie 1
     fi
   fi
@@ -188,8 +181,6 @@ function check_cvmfs() {
     else
       log "WARNING: ${target} not accessible or empty, pilot to handle"
       err "WARNING: ${target} not accessible or empty, pilot to handle"
-#      apfmon_fault 64
-#      sortie 64
     fi
   done
 }
@@ -220,7 +211,6 @@ function setup_alrb() {
       if [[ $? -eq 1 ]]; then
         log "FATAL: Site MW being used but proxy tools not found"
         err "FATAL: Site MW being used but proxy tools not found"
-        apfmon_fault 1
         sortie 1
       fi
     fi
@@ -362,12 +352,10 @@ function get_piloturl() {
   if [[ ${version} == '1' ]]; then
     log "FATAL: pilot version 1 requested, not supported by this wrapper"
     err "FATAL: pilot version 1 requested, not supported by this wrapper"
-    apfmon_fault 1
     sortie 1
   elif [[ ${version} == '2' ]]; then
     log "FATAL: pilot version 2 requested, not supported by this wrapper"
     err "FATAL: pilot version 2 requested, not supported by this wrapper"
-    apfmon_fault 1
     sortie 1
   elif [[ ${version} == 'latest' ]]; then
     pilottar=${pilotdir}/pilot3.tar.gz
@@ -790,7 +778,6 @@ function main() {
     else
       log "FATAL: failed to get CRIC container_options"
       err "FATAL: failed to get CRIC container_options"
-      apfmon_fault 1
       sortie 1
     fi
 
@@ -843,7 +830,6 @@ function main() {
   if [[ $? -ne 0 ]]; then
     log "FATAL: error with get_workdir"
     err "FATAL: error with get_workdir"
-    apfmon_fault 1
     sortie 1
   fi
   log "Workdir: ${workdir}"
@@ -875,7 +861,6 @@ function main() {
   if [[ $? -ne 0 ]]; then
     log "FATAL: failed to get pilot code, from node: $(hostname -f)"
     err "FATAL: failed to get pilot code, from node: $(hostname -f)"
-    apfmon_fault 64
     sortie 64
   fi
   echo
@@ -1045,36 +1030,29 @@ function main() {
 
   if [[ $pilotrc -eq 130 ]]; then
     # killed by supervisor SIGINT so use exitcode 2
-    apfmon_fault 2
     sortie 2
   elif [[ $pilotrc -eq 143 ]]; then
     # killed by SIGTERM, presumably LRMS
-    apfmon_fault 1
     sortie 1
   elif [[ $pilotrc -eq 137 ]]; then
     if [[ -f "wrapper_sigkill_$pilotpid" ]]; then
       err "Found: wrapper_sigkill_$pilotpid, so killed by wrapper"
       # killed by wrapper SIGKILL
-      apfmon_fault 2
       sortie 2
     else
       # killed by some other SIGKILL, presumably LRMS
       err "Not found: wrapper_sigkill_$pilotpid, so not killed by wrapper"
-      apfmon_fault 1
       sortie 1
     fi
   elif [[ $pilotrc -eq 64 ]]; then
-    apfmon_fault 64
     sortie 64
   elif [[ $pilotrc -eq 80 ]]; then
     log "WARNING: pilot exitcode=80, proxy lifetime too short"
     err "WARNING: pilot exitcode=80, proxy lifetime too short"
-    apfmon_fault 80
     sortie 80
   elif [[ $pilotrc -ne 0 ]]; then
     log "WARNING: pilot exitcode non-zero: ${pilotrc}"
     err "WARNING: pilot exitcode non-zero: ${pilotrc}"
-    apfmon_fault $pilotrc
     sortie $pilotrc
   fi
 
