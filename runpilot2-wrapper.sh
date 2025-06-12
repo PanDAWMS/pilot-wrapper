@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250604a-next
+VERSION=20250611a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -571,6 +571,19 @@ function get_environ() {
   fi
 }
 
+function get_resourcetype() {
+  local result
+  local content
+  result=$(curl --silent $cricurl | grep resource_type | grep -v null)
+  if [[ $? -eq 0 ]]; then
+    content=$(echo $result | awk -F"\"" '{print $4}')
+    echo ${content}
+    return 0
+  else
+    return 1
+  fi
+}
+
 function check_apptainer() {
   BINARY_PATH="${ATLAS_SW_BASE}/atlas.cern.ch/repo/containers/sw/apptainer/`uname -m`-el9/current/bin/apptainer"
   if [[ ${alma9flag} == 'true' ]]; then
@@ -889,6 +902,7 @@ function main() {
   else
     log 'No content found in CRIC environ'
   fi
+  resource_type=$(get_resourcetype)
   echo
 
   echo "---- Setup ALRB ----"
@@ -1040,6 +1054,14 @@ function main() {
     log "WARNING: pilot exitcode=80, proxy lifetime too short"
     err "WARNING: pilot exitcode=80, proxy lifetime too short"
     sortie 80
+  elif [[ $pilotrc -eq 82 ]]; then
+    log "WARNING: pilot exitcode=82, no payload"
+    err "WARNING: pilot exitcode=82, no payload"
+    if [[ ${resource_type} == "hpc_special" ]]; then
+      sortie 82
+    else
+      sortie 0
+    fi
   elif [[ $pilotrc -ne 0 ]]; then
     log "WARNING: pilot exitcode non-zero: ${pilotrc}"
     err "WARNING: pilot exitcode non-zero: ${pilotrc}"
