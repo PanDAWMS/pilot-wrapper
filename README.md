@@ -9,8 +9,10 @@ $ docker run -v ${PWD}:/scratch -e OIDC_AUTH_TOKEN=/scratch/token.txt -e OIDC_AU
 ```
 where you need to replace `<blah>`. E.g.:
 ```bash
+$ # x509 for rucio access
 $ cp ~/.globus/user* .
 $ cp /tmp/x509up_u123456 .
+$ # rucio config with x509
 $ cat rucio.cfg
 [client]
 rucio_host = https://voatlasrucio-server-prod.cern.ch:443
