@@ -54,6 +54,22 @@ RUN python$(echo ${PYTHON_VERSION} | sed -E 's/\.[0-9]+$//') -m venv /opt/pilot
 RUN /opt/pilot/bin/pip install --no-cache-dir -U pip setuptools
 RUN /opt/pilot/bin/pip install --no-cache-dir -U rucio-clients psutil gfal2-python
 
+# rucio clients configuration
+RUN mkdir -p /opt/rucio/etc && \
+    ln -s /scratch/rucio.cfg /opt/rucio/etc/rucio.cfg
+
+# install CA certificates
+RUN mkdir -p /etc/grid-security/certificates &&  \
+    mkdir /tmp/cert && \
+    cd /tmp/cert && \
+    wget -l1 -r -np -nH -e robots=off --cut-dirs=7 http://repository.egi.eu/sw/production/cas/1/current/tgz/ && \
+    bash -c 'for tgz in $(ls *.tar.gz); do tar xzf ./$tgz --strip-components=1 -C /etc/grid-security/certificates; done' && \
+    cd - && \
+    rm -rf /tmp/cert
+
+ENV X509_CERT_DIR=/etc/grid-security/certificates
+
+# setup pilot
 RUN mkdir /pilot
 WORKDIR /pilot
 
