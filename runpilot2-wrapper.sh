@@ -853,7 +853,9 @@ function main() {
   echo
 
   echo "---- Retrieve pilot code ----"
-  piloturl=$(get_piloturl ${pilotversion})
+  if [[ ${piloturl} != 'local' ]]; then
+    piloturl=$(get_piloturl ${pilotversion})
+  fi
   log "Using piloturl: ${piloturl}"
 
   log "Only supporting pilot3 so pilotbase directory: pilot3"
