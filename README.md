@@ -1,6 +1,6 @@
 Production wrapper for Pilot 3
 
-The container image contains the pilot wrapper and its tarball, enabling execution in CVMFS-free environments. 
+The container image contains the pilot wrapper and pilot tarball, enabling execution of the pilot in CVMFS-free environments. 
 The argument strings given to the container are passed to the pilot wrapper. Make sure you have a token (and rucio.cfg for Rucio access) in your current directory and mount it to /scratch inside the container.
 Here's an example of running the container without CVMFS:
 
