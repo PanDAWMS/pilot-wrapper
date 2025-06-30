@@ -35,7 +35,7 @@ RUN mkdir /tmp/python && cd /tmp/python && \
     cd Python-* && \
     ./configure  && \
     make altinstall && \
-    echo /usr/local/lib > /etc/ld.so.conf.d/local.conf && ldconfig && cd / && rm -rf /tmp/pyton
+    echo /usr/local/lib > /etc/ld.so.conf.d/local.conf && ldconfig && cd / && rm -rf /tmp/python
 
 # install Boost Python
 RUN mkdir /tmp/boost && cd /tmp/boost && \
