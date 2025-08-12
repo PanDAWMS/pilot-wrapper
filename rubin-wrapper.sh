@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250331a-rubin
+VERSION=20250812a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -43,15 +43,6 @@ function check_python3() {
     log "PATH content: ${PATH}"
     err "PATH content: ${PATH}"
     sortie 1
-  fi
-}
-
-function check_proxy() {
-  if voms-proxy-info -all; then
-    return
-  else
-    log "WARNING: error running: voms-proxy-info -all"
-    err "WARNING: error running: voms-proxy-info -all"
   fi
 }
 
@@ -354,10 +345,6 @@ function main() {
 
   echo "---- Check python version ----"
   check_python3
-  echo 
-
-  echo "---- Check proxy ----"
-  check_proxy
   echo 
 
   echo "---- Job Environment (redacted) ----"
