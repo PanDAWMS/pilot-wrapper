@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250812a-rubin
+VERSION=20251001a-rubin
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -71,14 +71,14 @@ function setup_lsst() {
   source ${pandaenvdir}/conda/install/bin/activate pilot
   export PILOT_ES_EXECUTOR_TYPE=fineGrainedProc
   log "DAF_BUTLER_REPOSITORY_INDEX=${DAF_BUTLER_REPOSITORY_INDEX}"
-  if stat "${DAF_BUTLER_REPOSITORY_INDEX}"; then
-    log 'cat ${DAF_BUTLER_REPOSITORY_INDEX}'
-    cat ${DAF_BUTLER_REPOSITORY_INDEX}
-  else
-    log 'FATAL: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
-    err 'FATAL: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
-    sortie 1
-  fi
+#  if stat "${DAF_BUTLER_REPOSITORY_INDEX}"; then
+#    log 'cat ${DAF_BUTLER_REPOSITORY_INDEX}'
+#    cat ${DAF_BUTLER_REPOSITORY_INDEX}
+#  else
+#    log 'FATAL: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
+#    err 'FATAL: failed to stat $DAF_BUTLER_REPOSITORY_INDEX'
+#    sortie 1
+#  fi
 }
 
 function check_vomsproxyinfo() {
