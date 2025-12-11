@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20250611a-next
+VERSION=20251211a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -227,6 +227,7 @@ function setup_alrb() {
   export ATLAS_LOCAL_ROOT_BASE=${ATLAS_LOCAL_ROOT_BASE:-${ATLAS_SW_BASE}/atlas.cern.ch/repo/ATLASLocalRootBase}
   export ALRB_userMenuFmtSkip=YES
   export ALRB_noGridMW=${ALRB_noGridMW:-NO}
+  export ALRB_CONT_NOHOME=YES
 
   log 'NOTE: rucio,davix,xrootd setup now done in local site setup atlasLocalSetup.sh'
   if [[ ${iarg} == "RC" ]]; then
