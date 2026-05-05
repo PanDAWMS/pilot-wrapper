@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20260504a-next
+VERSION=20260505a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -852,7 +852,9 @@ function main() {
   echo
 
   echo "---- Retrieve pilot code ----"
-  piloturl=$(get_piloturl ${pilotversion})
+  if [[ ${piloturl} != 'local' ]]; then
+    piloturl=$(get_piloturl ${pilotversion})
+  fi
   log "Using piloturl: ${piloturl}"
 
   log "Only supporting pilot3 so pilotbase directory: pilot3"
