@@ -4,7 +4,7 @@
 #
 # https://google.github.io/styleguide/shell.xml
 
-VERSION=20251211a-next
+VERSION=20260504a-next
 
 function err() {
   dt=$(date --utc +"%Y-%m-%d %H:%M:%S,%3N [wrapper]")
@@ -663,12 +663,10 @@ function panda_update_worker_pilot_status() {
        --cacert "${X509_USER_PROXY}" --cert "${X509_USER_PROXY}" --key "${X509_USER_PROXY}" \
        -H "User-Agent: pilot-wrapper/${VERSION} ($(uname -sm))" \
        -H 'Accept: application/json' \
-       --data-urlencode "workerID=${HARVESTER_WORKER_ID}" \
-       --data-urlencode "harvesterID=${HARVESTER_ID}" \
-       --data-urlencode 'status=started' \
-       --data-urlencode "site=${qarg}" \
-       --data-urlencode "node_id=$(hostname -f)" \
-       "${pandaurl}/server/panda/updateWorkerPilotStatus"
+       -H 'Content-Type: application/json' \
+       -X POST \
+       -d "{\"worker_id\": ${HARVESTER_WORKER_ID}, \"harvester_id\": \"${HARVESTER_ID}\", \"status\": \"started\", \"node_id\": \"$(hostname -f)\"}" \
+       "${pandaurl}/api/v1/pilot/update_worker_status"
 }
 
 function hostinfo() {
