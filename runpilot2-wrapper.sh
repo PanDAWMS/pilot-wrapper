@@ -1186,6 +1186,8 @@ case $key in
     ;;
     --queuedata-url)
     queuedata_url="$2"
+    POSITIONAL+=("$1")
+    POSITIONAL+=("$2")
     shift
     shift
     ;;
