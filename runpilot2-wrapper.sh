@@ -1184,6 +1184,13 @@ case $key in
     shift
     shift
     ;;
+    --queuedata-url)
+    queuedata_url="$2"
+    POSITIONAL+=("$1")
+    POSITIONAL+=("$2")
+    shift
+    shift
+    ;;
     -i)
     iarg="$2"
     shift
@@ -1236,6 +1243,8 @@ pilotargs="$@"
 
 if [[ -f queuedata.json ]]; then
   cricurl="file://${PWD}/queuedata.json"
+elif [[ -n "${queuedata_url}" ]]; then
+  cricurl="${queuedata_url}"
 else
   cricurl="http://pandaserver.cern.ch:25085/cache/schedconfig/${qarg}.all.json"
 fi
